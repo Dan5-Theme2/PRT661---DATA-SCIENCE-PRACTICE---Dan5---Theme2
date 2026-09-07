@@ -1,2 +1,1 @@
-Source code/Datasets/*.csv filter=lfs diff=lfs merge=lfs -text
-Source[[:space:]]code/Datasets/*.csv filter=lfs diff=lfs merge=lfs -text
+"Source code/Datasets/*.csv" filter=lfs diff=lfs merge=lfs -text

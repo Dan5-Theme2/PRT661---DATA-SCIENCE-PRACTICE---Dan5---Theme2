@@ -1,0 +1,38 @@
+{
+  "project": "Fire2Air Darwin",
+  "threshold_pm25_ug_m3": 25.0,
+  "max_fire_distance_km": 500.0,
+  "split_basis": "target_date",
+  "train_target_years": "2018-2022",
+  "validation_target_year": 2023,
+  "test_target_year": 2024,
+  "features": [
+    "station",
+    "pm25_mean",
+    "pm25_max",
+    "pm10_mean",
+    "pm10_max",
+    "humidity_mean",
+    "temperature_mean",
+    "wind_speed_mean",
+    "pressure_mean",
+    "wind_dir_sin_mean",
+    "wind_dir_cos_mean",
+    "fire_count_0_25km",
+    "fire_count_25_50km",
+    "fire_count_50_100km",
+    "fire_count_100_200km",
+    "fire_count_200_500km",
+    "frp_sum_0_500km",
+    "nearest_fire_km",
+    "month_sin",
+    "month_cos",
+    "pm25_lag1",
+    "pm25_3day_mean"
+  ],
+  "targets": {
+    "classification": "target_pm25_over_25_next_day",
+    "regression": "target_pm25_next_day",
+    "count": "target_hours_ge_25_next_day"
+  }
+}
