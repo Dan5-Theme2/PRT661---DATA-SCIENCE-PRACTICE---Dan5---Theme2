@@ -1,0 +1,9 @@
+variable,rule,values_set_or_changed
+pm25_ug_m3,negative concentration -> NaN,11040
+pm10_ug_m3,negative concentration -> NaN,1775
+air_pressure_hpa,Stokes Hill: ~1-atmosphere scale converted to hPa using x1013.25,58312
+relative_humidity_pct,"outside [0.0, 100.0] -> NaN",3789
+air_temperature_c,"outside [-20.0, 60.0] -> NaN",1169
+wind_speed_m_s,"outside [0.0, 80.0] -> NaN",434
+air_pressure_hpa,"outside [850.0, 1100.0] -> NaN",284
+wind_direction_deg,"outside [0, 360) -> NaN",0
