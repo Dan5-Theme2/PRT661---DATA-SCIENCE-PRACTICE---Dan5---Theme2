@@ -1,39 +1,115 @@
 # Fire2Air Darwin — Assessment 2 Technical Workflow
 
-## Run order
-1. `01_Thi_Pham_Hybrid_Data_Processing_Feature_Engineering.ipynb`
-2. `02_Lihini_Jinanjalie_Hybrid_Model1_Classification.ipynb`
-3. `03_Esangbedo_Favour_Hybrid_Model2_Regression.ipynb`
-4. `04_Navodya_Piumanthi_Hybrid_Model3_Count_Explainability.ipynb`
-5. `05_Dieu_Yen_Diep_Hybrid_Visualisation_Documentation.ipynb`
+# Fire2Air Darwin
 
-## Team responsibilities
-- **Thi Pham:** data processing and feature engineering.
-- **Lihini Jinanjalie:** Model 1 classification; PR-AUC-first model selection.
-- **Esangbedo Favour:** Model 2 next-day PM2.5 regression; MAE/RMSE evaluation.
-- **Navodya Piumanthi:** Model 3 elevated-hours count prediction and explainability.
-- **Dieu Yen Diep:** visualisation, diagrams, evidence manifest and documentation.
+## Explainable Next-Day Smoke and PM₂.₅ Forecasting for Greater Darwin
 
-## Shared modelling design
-- Prediction horizon: day t → day t+1.
-- Classification target: next-day 24-hour mean PM2.5 > 25 µg/m³.
-- Regression target: next-day 24-hour mean PM2.5.
-- Count target: next-day number of hours with PM2.5 ≥ 25 µg/m³.
-- FIRMS scope: station-specific S-NPP VIIRS vegetation-fire features out to 500 km.
-- Training: target dates in 2018–2022.
-- Validation: target dates in 2023.
-- Final untouched test: target dates in 2024.
-- Target continuity: next-day targets are created only when the next station record is exactly one calendar day later.
+**Unit:** PRT661 – Data Science Practice  
+**Theme:** Theme 2 – Predictive Analytics and Forecasting  
+**Semester:** Semester 2, 2026  
+**Group:** DAN5 – Theme 2
 
-## Key shared artefacts
-- `Fire2Air_model_ready_checkpoint.csv`
-- `Fire2Air_feature_manifest.json`
-- `outputs_prt661/tables/`
-- `outputs_prt661/figures/`
-- `outputs_prt661/models/`
+---
 
-## Governance note
-Do not fabricate GitHub commits, pull requests, Jira tickets, sprint boards or meeting records. Add screenshots/links from the team's real repository and project-management tools.
+## Project Overview
 
-## Decision-support statement
-This project is a research/decision-support prototype. It is not an official NT EPA warning and is not medical advice. Feature importance and SHAP explain model behaviour; they do not prove causal relationships.
+Fire2Air Darwin is a predictive analytics project developed to forecast next-day PM₂.₅ conditions in Greater Darwin.
+
+The project combines historical air-quality and weather observations from the NT EPA Air Quality Network with NASA FIRMS Suomi-NPP VIIRS fire-detection data. The study focuses on Palmerston, Winnellie and Stokes Hill using data from 2018–2024.
+
+The project contains three prediction tasks:
+
+1. **Classification** – predict whether the next-day 24-hour mean PM₂.₅ will exceed 25 µg/m³.
+2. **Regression** – predict the next-day mean PM₂.₅ concentration.
+3. **Count Prediction** – predict the number of next-day hours with PM₂.₅ at or above 25 µg/m³.
+
+For Model 3, 25 µg/m³ is used as a project reference level for counting elevated hours. It is not treated as an official hourly PM₂.₅ standard.
+
+---
+
+## Data Sources
+
+### NT EPA Air Quality Network
+
+Hourly air-quality and weather observations are used from:
+
+- Palmerston
+- Winnellie
+- Stokes Hill
+
+Main variables include:
+
+- PM₂.₅
+- PM₁₀
+- Temperature
+- Relative humidity
+- Wind speed
+- Wind direction
+- Atmospheric pressure
+- Rainfall
+
+### NASA FIRMS Suomi-NPP VIIRS
+
+Satellite fire-detection data include:
+
+- Fire latitude and longitude
+- Detection date and time
+- Fire Radiative Power (FRP)
+- Confidence information
+
+Fire-related features are calculated using distance bands extending up to 500 km from each monitoring station.
+
+---
+
+## Team Responsibilities
+
+| Team Member | Responsibility |
+|---|---|
+| Huynh Anh Thi Pham | Data processing and feature engineering |
+| Lihini Jinanjalie Deniyelge | Model 1 – Classification |
+| Esangbedo Favour Ikponwosa | Model 2 – Regression |
+| Navodya Piumanthi Siriwardhana | Model 3 – Count Prediction and Explainability |
+| Dieu Yen Diep | EDA, visualisation and documentation |
+
+---
+
+## Environment Setup
+
+### 1. Requirements
+
+The project is designed to run in Python using VS Code and Jupyter Notebook.
+
+Recommended software:
+
+- Python 3
+- Visual Studio Code
+- VS Code Python extension
+- VS Code Jupyter extension
+
+### 2. Install Required Python Packages
+
+After cloning or downloading the repository, open the VS Code terminal in the project folder.
+
+Upgrade `pip` first:
+
+```bash
+python -m pip install --upgrade pip
+```
+
+---
+
+## Project File Setup
+
+The main project code is stored under the `Source code` area of the repository.
+
+The main executable files are:
+
+```text
+Source code/
+│
+├── 01_Huynh_Hybrid_Data_Processing_Feature_Engineering(1).ipynb
+├── Lihini Model 1 Classification.ipynb
+├── 03_Esangbedo_Favour_Hybrid_Model2_Regression_v2.py
+├── Model3_Count_Explainability(2).ipynb
+└── Jenny - Visualization and Documentation.ipynb
+```
