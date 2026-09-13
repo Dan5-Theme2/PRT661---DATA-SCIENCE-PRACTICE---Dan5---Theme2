@@ -1,0 +1,3 @@
+check,passed
+target_date equals feature date + 1 day,True
+pm25_lag1 equals within-station shift(1),False
