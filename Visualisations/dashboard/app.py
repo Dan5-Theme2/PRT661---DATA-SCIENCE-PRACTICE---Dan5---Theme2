@@ -37,22 +37,18 @@ def load_data():
 
 df = load_data()
 
-
 # ---------------------------------------------------------
 # Header
 # ---------------------------------------------------------
 
 st.title("🔥 Fire2Air Darwin")
 
-st.subheader(
-    "Next-Day PM₂.₅ Prediction and Smoke Outlook"
-)
+st.subheader("Next-Day PM₂.₅ Forecasting Dashboard")
 
 st.caption(
-    "Historical test predictions from the 2024 held-out evaluation period "
+    "Historical prototype evaluated on the held-out 2024 test period "
     "for Darwin monitoring stations."
 )
-
 
 # ---------------------------------------------------------
 # Sidebar controls
@@ -97,17 +93,19 @@ row = selected.iloc[0]
 # Next-Day Smoke Outlook
 # ---------------------------------------------------------
 
-st.header("Next-Day Smoke Outlook")
+st.header(
+    f"{selected_station} Forecast — "
+    f"{selected_date.strftime('%d %B %Y')}"
+)
 
+st.caption(
+    "Tomorrow Smoke Outlook — combining exceedance probability, "
+    "expected PM₂.₅ concentration and expected elevated duration."
+)
 
 st.info(
     "Historical Test Forecast — this view shows model predictions "
     "for the selected date in the 2024 held-out test period."
-)
-
-st.write(
-    f"**Station:** {selected_station}  |  "
-    f"**Forecast date:** {selected_date}"
 )
 
 
@@ -180,11 +178,22 @@ if pd.notna(probability):
     else:
         classification_text = "Elevated PM₂.₅ not predicted"
 
-    st.info(
-        f"**Model 1 classification:** {classification_text}  \n"
-        f"Predicted probability: {probability * 100:.1f}% | "
-        f"Decision threshold: {CLASSIFICATION_THRESHOLD * 100:.0f}%"
-    )
+    st.caption(
+    f"Model 1 decision: **{classification_text}** "
+    f"(threshold: {CLASSIFICATION_THRESHOLD * 100:.0f}%)."
+)
+
+if pd.notna(probability):
+    if probability >= CLASSIFICATION_THRESHOLD:
+        st.info(
+            "Forecast interpretation: The model indicates an elevated "
+            "PM₂.₅ risk for the selected forecast date."
+        )
+    else:
+        st.info(
+            "Forecast interpretation: The model indicates a low probability "
+            "of elevated PM₂.₅ for the selected forecast date."
+        )
 
 # ---------------------------------------------------------
 # Predictor-day environmental context
@@ -272,15 +281,7 @@ fire_50_100 = row["fire_count_50_100km"]
 fire_100_200 = row["fire_count_100_200km"]
 fire_200_500 = row["fire_count_200_500km"]
 
-f1, f2, f3, f4, f5 = st.columns(5)
-
-f1.metric("0–25 km", f"{fire_0_25:.0f} fires")
-f2.metric("25–50 km", f"{fire_25_50:.0f} fires")
-f3.metric("50–100 km", f"{fire_50_100:.0f} fires")
-f4.metric("100–200 km", f"{fire_100_200:.0f} fires")
-f5.metric("200–500 km", f"{fire_200_500:.0f} fires")
-
-
+# Summary fire metrics
 total_fires = (
     f"{row['fire_count_0_500km']:.0f}"
     if pd.notna(row["fire_count_0_500km"])
@@ -299,11 +300,23 @@ nearest_fire = (
     else "N/A"
 )
 
+# Main fire summary
 s1, s2, s3 = st.columns(3)
 
-s1.metric("Total Fires within 500 km", total_fires)
+s1.metric("Fire Detections within 500 km", total_fires)
 s2.metric("Total FRP within 500 km", total_frp)
-s3.metric("Nearest Fire", nearest_fire)
+s3.metric("Nearest Detected Fire", nearest_fire)
+
+# Fire detections by distance
+st.caption("Fire detections by distance from the monitoring station")
+
+f1, f2, f3, f4, f5 = st.columns(5)
+
+f1.metric("0–25 km", f"{fire_0_25:.0f}" if pd.notna(fire_0_25) else "N/A")
+f2.metric("25–50 km", f"{fire_25_50:.0f}" if pd.notna(fire_25_50) else "N/A")
+f3.metric("50–100 km", f"{fire_50_100:.0f}" if pd.notna(fire_50_100) else "N/A")
+f4.metric("100–200 km", f"{fire_100_200:.0f}" if pd.notna(fire_100_200) else "N/A")
+f5.metric("200–500 km", f"{fire_200_500:.0f}" if pd.notna(fire_200_500) else "N/A")
 
 # ---------------------------------------------------------
 # Historical model predictions
@@ -364,6 +377,33 @@ fig.add_vline(
     annotation_text="Selected date"
 )
 
+selected_history = history[
+    history["forecast_date"] == pd.Timestamp(selected_date)
+]
+
+if not selected_history.empty:
+    selected_point = selected_history.iloc[0]
+
+    if pd.notna(selected_point["observed_pm25"]):
+        fig.add_scatter(
+            x=[selected_date],
+            y=[selected_point["observed_pm25"]],
+            mode="markers",
+            marker=dict(size=10),
+            name="Selected observed",
+            showlegend=False
+        )
+
+    if pd.notna(selected_point["predicted_pm25"]):
+        fig.add_scatter(
+            x=[selected_date],
+            y=[selected_point["predicted_pm25"]],
+            mode="markers",
+            marker=dict(size=10),
+            name="Selected predicted",
+            showlegend=False
+        )
+
 fig.update_layout(
     xaxis_title="Forecast date",
     yaxis_title="PM₂.₅ (µg/m³)",
@@ -377,6 +417,11 @@ st.plotly_chart(
 )
 
 st.subheader("Model Output Availability")
+
+st.caption(
+    "Availability across the Model 1 forecast dates for the selected station. "
+    "Some dates do not have corresponding outputs from Models 2 or 3."
+)
 
 total_days = len(station_df)
 
@@ -404,14 +449,19 @@ a3.metric(
 # Model details
 # ---------------------------------------------------------
 
-with st.expander("View model output details"):
+with st.expander("View selected forecast details"):
+
+    st.caption(
+        f"Model outputs for {selected_station} on "
+        f"{pd.Timestamp(selected_date).strftime('%d %B %Y')}."
+    )
 
     details = pd.DataFrame(
         {
-            "Measure": [
+            "Model Output": [
                 "Observed exceedance",
-                "Predicted probability",
-                "Predicted class",
+                "Predicted exceedance probability",
+                "Predicted exceedance class",
                 "Observed PM₂.₅",
                 "Predicted PM₂.₅",
                 "Observed elevated hours",
@@ -419,12 +469,32 @@ with st.expander("View model output details"):
             ],
             "Value": [
                 row["observed_exceedance"],
-                row["predicted_probability"],
+                (
+                    f"{row['predicted_probability'] * 100:.1f}%"
+                    if pd.notna(row["predicted_probability"])
+                    else "N/A"
+                ),
                 row["predicted_class"],
-                row["observed_pm25"],
-                row["predicted_pm25"],
-                row["observed_elevated_hours"],
-                row["predicted_elevated_hours"]
+                (
+                    f"{row['observed_pm25']:.1f} µg/m³"
+                    if pd.notna(row["observed_pm25"])
+                    else "N/A"
+                ),
+                (
+                    f"{row['predicted_pm25']:.1f} µg/m³"
+                    if pd.notna(row["predicted_pm25"])
+                    else "N/A"
+                ),
+                (
+                    f"{row['observed_elevated_hours']:.0f} h"
+                    if pd.notna(row["observed_elevated_hours"])
+                    else "N/A"
+                ),
+                (
+                    f"{row['predicted_elevated_hours']:.1f} h"
+                    if pd.notna(row["predicted_elevated_hours"])
+                    else "N/A"
+                )
             ]
         }
     )
@@ -433,6 +503,28 @@ with st.expander("View model output details"):
         details,
         hide_index=True,
         use_container_width=True
+    )
+
+st.subheader("Related Air-Quality Resources")
+
+st.caption(
+    "Fire2Air Darwin is a research prototype for Darwin-specific "
+    "next-day PM₂.₅ forecasting. The following external services "
+    "provide complementary environmental and fire information."
+)
+
+with st.expander("View external resources"):
+    st.markdown(
+        """
+        **[AirRater](https://airrater.org/)**  
+        Environmental monitoring and exposure information.
+
+        **[NT EPA Air Quality Monitoring](https://ntepa.nt.gov.au/your-environment/air-quality/air-quality-monitoring)**  
+        Official Northern Territory air-quality monitoring information.
+
+        **[NASA FIRMS](https://firms.modaps.eosdis.nasa.gov/)**  
+        Satellite-derived active-fire and thermal-anomaly information.
+        """
     )
 
 # ---------------------------------------------------------
