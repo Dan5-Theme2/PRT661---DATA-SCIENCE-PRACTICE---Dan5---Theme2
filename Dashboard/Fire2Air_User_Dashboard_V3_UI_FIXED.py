@@ -45,10 +45,24 @@ DARWIN_LOCATIONS = {
 }
 
 APP_DIR = Path(__file__).resolve().parent
+REPO_ROOT = APP_DIR.parent
 
-# Logo path:
-# - The repository-relative path works both locally and on Streamlit Community Cloud.
-# - The full Windows path is used only as a local-laptop fallback.
+# Raw NASA FIRMS yearly archives in the GitHub repository.
+FIRMS_DATA_DIR = REPO_ROOT / "Datasets"
+
+# Local Windows fallback.
+LOCAL_FIRMS_DATA_DIR = Path(
+    r"C:\Users\dlihi\Documents\PRT661 Data Science\Assessment 2\PRT661---DATA-SCIENCE-PRACTICE---Dan5---Theme2\Datasets"
+)
+
+if FIRMS_DATA_DIR.exists():
+    ACTIVE_FIRMS_DATA_DIR = FIRMS_DATA_DIR
+elif LOCAL_FIRMS_DATA_DIR.exists():
+    ACTIVE_FIRMS_DATA_DIR = LOCAL_FIRMS_DATA_DIR
+else:
+    ACTIVE_FIRMS_DATA_DIR = FIRMS_DATA_DIR
+
+# Logo: Dashboard/Fire2Air_logo.png
 LOCAL_LOGO_FALLBACK = Path(
     r"C:\Users\dlihi\Documents\PRT661 Data Science\Assessment 2\PRT661---DATA-SCIENCE-PRACTICE---Dan5---Theme2\Dashboard\Fire2Air_logo.png"
 )
@@ -59,7 +73,7 @@ LOGO_CANDIDATES = [
 ]
 
 LOGO_PATH = next(
-    (path for path in LOGO_CANDIDATES if path.is_file()),
+    (p for p in LOGO_CANDIDATES if p.is_file()),
     None,
 )
 
@@ -134,31 +148,77 @@ def probability_status(p):
 @st.cache_data(show_spinner=False)
 def load_fires_for_date(date_text):
     date = pd.Timestamp(date_text).normalize()
-    files = [p for p in PROJECT_FOLDER.glob("fire_archive_SV-C2_*.csv") if str(date.year) in p.name]
+
+    # Search yearly FIRMS files in:
+    # <repository root>/Datasets
+    files = [
+        p for p in ACTIVE_FIRMS_DATA_DIR.glob("fire_archive_SV-C2_*.csv")
+        if str(date.year) in p.name
+    ]
+
     parts = []
+
     for f in files:
         try:
             for chunk in pd.read_csv(f, chunksize=250_000):
                 if "acq_date" not in chunk.columns:
                     continue
-                d = pd.to_datetime(chunk["acq_date"], errors="coerce")
-                mask = d.dt.normalize().eq(date)
+
+                acquisition_dates = pd.to_datetime(
+                    chunk["acq_date"],
+                    errors="coerce"
+                )
+                mask = acquisition_dates.dt.normalize().eq(date)
+
                 if mask.any():
-                    keep = [c for c in ["latitude","longitude","acq_date","acq_time","frp","type","confidence"] if c in chunk.columns]
-                    parts.append(chunk.loc[mask,keep].copy())
-        except Exception:
-            pass
+                    keep = [
+                        c for c in [
+                            "latitude",
+                            "longitude",
+                            "acq_date",
+                            "acq_time",
+                            "frp",
+                            "type",
+                            "confidence",
+                        ]
+                        if c in chunk.columns
+                    ]
+                    parts.append(chunk.loc[mask, keep].copy())
+
+        except Exception as exc:
+            print(f"Could not read FIRMS file {f.name}: {exc}")
+
     if not parts:
         return pd.DataFrame()
-    fire = pd.concat(parts,ignore_index=True)
-    fire["latitude"] = pd.to_numeric(fire["latitude"], errors="coerce")
-    fire["longitude"] = pd.to_numeric(fire["longitude"], errors="coerce")
-    if "frp" in fire:
-        fire["frp"] = pd.to_numeric(fire["frp"], errors="coerce")
-    fire = fire.dropna(subset=["latitude","longitude"])
-    if "type" in fire:
-        fire = fire[fire["type"].fillna(0).eq(0)]
+
+    fire = pd.concat(parts, ignore_index=True)
+
+    fire["latitude"] = pd.to_numeric(
+        fire["latitude"],
+        errors="coerce"
+    )
+    fire["longitude"] = pd.to_numeric(
+        fire["longitude"],
+        errors="coerce"
+    )
+
+    if "frp" in fire.columns:
+        fire["frp"] = pd.to_numeric(
+            fire["frp"],
+            errors="coerce"
+        )
+
+    fire = fire.dropna(
+        subset=["latitude", "longitude"]
+    )
+
+    if "type" in fire.columns:
+        fire = fire[
+            fire["type"].fillna(0).eq(0)
+        ].copy()
+
     return fire
+
 
 # CSS — MATCHES THE APPROVED MOCKUP
 
@@ -206,10 +266,8 @@ if outlook.empty:
 
 nav_logo, nav_title, nav_location, nav_date, nav_clock = st.columns([0.62,1.45,2.35,1.35,1.25], gap="small")
 with nav_logo:
-    if LOGO_PATH is not None:
-        st.image(str(LOGO_PATH), width="stretch")
-    else:
-        st.warning("Fire2Air_logo.png not found")
+    if LOGO_PATH is not None: st.image(str(LOGO_PATH), width="stretch")
+    else: st.warning("Fire2Air_logo.png not found")
 with nav_title:
     st.markdown("<div class=\"nav-title-card\"><div class=\"nav-title\">Fire2Air Darwin</div><div class=\"nav-sub\">Tomorrow's smoke outlook for Greater Darwin</div></div>", unsafe_allow_html=True)
 with nav_location:
