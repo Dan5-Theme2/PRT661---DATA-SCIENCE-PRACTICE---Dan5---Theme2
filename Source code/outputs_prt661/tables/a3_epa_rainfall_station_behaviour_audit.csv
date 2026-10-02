@@ -1,0 +1,4 @@
+station,nonmissing_pct,median_raw,p95_raw,zero_fraction_raw,n_unique_raw,cumulative_counter_flag
+Palmerston,95.38358753747882,0.0,0.1,0.9338173742205518,262,False
+Stokes Hill,0.0,,,,0,False
+Winnellie,84.56198670316778,698.0,8685.6,9.635025243766139e-05,3025,True
