@@ -44,10 +44,24 @@ DARWIN_LOCATIONS = {
     "Winnellie": (-12.424017, 130.893346),
 }
 
+APP_DIR = Path(__file__).resolve().parent
+
+# Logo path:
+# - The repository-relative path works both locally and on Streamlit Community Cloud.
+# - The full Windows path is used only as a local-laptop fallback.
+LOCAL_LOGO_FALLBACK = Path(
+    r"C:\Users\dlihi\Documents\PRT661 Data Science\Assessment 2\PRT661---DATA-SCIENCE-PRACTICE---Dan5---Theme2\Dashboard\Fire2Air_logo.png"
+)
+
 LOGO_CANDIDATES = [
-    PROJECT_FOLDER / "Fire2Air_Logo.png"
+    APP_DIR / "Fire2Air_logo.png",
+    LOCAL_LOGO_FALLBACK,
 ]
-LOGO_PATH = next((p for p in LOGO_CANDIDATES if p.exists()), None)
+
+LOGO_PATH = next(
+    (path for path in LOGO_CANDIDATES if path.is_file()),
+    None,
+)
 
 def read_csv_safe(path, parse_dates=None):
     if not path.exists():
@@ -192,8 +206,10 @@ if outlook.empty:
 
 nav_logo, nav_title, nav_location, nav_date, nav_clock = st.columns([0.62,1.45,2.35,1.35,1.25], gap="small")
 with nav_logo:
-    if LOGO_PATH and LOGO_PATH.exists(): st.image(str(LOGO_PATH), use_container_width=True)
-    else: st.warning("Fire2Air_Logo.png not found")
+    if LOGO_PATH is not None:
+        st.image(str(LOGO_PATH), width="stretch")
+    else:
+        st.warning("Fire2Air_logo.png not found")
 with nav_title:
     st.markdown("<div class=\"nav-title-card\"><div class=\"nav-title\">Fire2Air Darwin</div><div class=\"nav-sub\">Tomorrow's smoke outlook for Greater Darwin</div></div>", unsafe_allow_html=True)
 with nav_location:
