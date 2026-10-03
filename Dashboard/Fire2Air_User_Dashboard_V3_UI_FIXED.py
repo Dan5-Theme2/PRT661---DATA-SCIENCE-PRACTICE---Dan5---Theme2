@@ -147,78 +147,86 @@ def probability_status(p):
 
 @st.cache_data(show_spinner=False)
 def load_fires_for_date(date_text):
-    date = pd.Timestamp(date_text).normalize()
+    selected_date = pd.Timestamp(date_text).normalize()
 
-    # Search yearly FIRMS files in:
-    # <repository root>/Datasets
-    files = [
+    year_files = [
         p for p in ACTIVE_FIRMS_DATA_DIR.glob("fire_archive_SV-C2_*.csv")
-        if str(date.year) in p.name
+        if str(selected_date.year) in p.name
     ]
 
     parts = []
 
-    for f in files:
+    for file_path in year_files:
         try:
-            for chunk in pd.read_csv(f, chunksize=250_000):
-                if "acq_date" not in chunk.columns:
+            for chunk in pd.read_csv(file_path, chunksize=250_000):
+                if not {"latitude", "longitude", "acq_date"}.issubset(chunk.columns):
                     continue
 
-                acquisition_dates = pd.to_datetime(
+                dates = pd.to_datetime(
                     chunk["acq_date"],
                     errors="coerce"
-                )
-                mask = acquisition_dates.dt.normalize().eq(date)
+                ).dt.normalize()
 
-                if mask.any():
-                    keep = [
-                        c for c in [
-                            "latitude",
-                            "longitude",
-                            "acq_date",
-                            "acq_time",
-                            "frp",
-                            "type",
-                            "confidence",
-                        ]
-                        if c in chunk.columns
+                mask = dates.eq(selected_date)
+                if not mask.any():
+                    continue
+
+                keep = [
+                    c for c in [
+                        "latitude", "longitude", "acq_date", "acq_time",
+                        "frp", "type", "confidence", "brightness", "bright_ti4"
                     ]
-                    parts.append(chunk.loc[mask, keep].copy())
+                    if c in chunk.columns
+                ]
+                parts.append(chunk.loc[mask, keep].copy())
 
         except Exception as exc:
-            print(f"Could not read FIRMS file {f.name}: {exc}")
+            print(f"Could not read FIRMS file {file_path.name}: {exc}")
+
+    # Fallback to compact dashboard fire-point file.
+    if not parts:
+        compact_file = APP_DIR / "Fire2Air_dashboard_fire_points_2018_2024.csv"
+        if compact_file.exists():
+            try:
+                compact = pd.read_csv(compact_file)
+                date_col = next(
+                    (c for c in ["date_darwin", "acq_date", "date"] if c in compact.columns),
+                    None,
+                )
+                if date_col:
+                    compact_dates = pd.to_datetime(
+                        compact[date_col],
+                        errors="coerce"
+                    ).dt.normalize()
+                    compact = compact.loc[compact_dates.eq(selected_date)].copy()
+                    if not compact.empty:
+                        parts.append(compact)
+            except Exception as exc:
+                print(f"Could not read compact fire-point file: {exc}")
 
     if not parts:
         return pd.DataFrame()
 
     fire = pd.concat(parts, ignore_index=True)
 
-    fire["latitude"] = pd.to_numeric(
-        fire["latitude"],
-        errors="coerce"
-    )
-    fire["longitude"] = pd.to_numeric(
-        fire["longitude"],
-        errors="coerce"
-    )
+    fire["latitude"] = pd.to_numeric(fire["latitude"], errors="coerce")
+    fire["longitude"] = pd.to_numeric(fire["longitude"], errors="coerce")
+    fire["frp"] = pd.to_numeric(fire.get("frp"), errors="coerce")
 
-    if "frp" in fire.columns:
-        fire["frp"] = pd.to_numeric(
-            fire["frp"],
-            errors="coerce"
-        )
-
-    fire = fire.dropna(
-        subset=["latitude", "longitude"]
-    )
-
+    # Important: type may be loaded as string "0"; convert before filtering.
     if "type" in fire.columns:
-        fire = fire[
-            fire["type"].fillna(0).eq(0)
-        ].copy()
+        fire_type = pd.to_numeric(fire["type"], errors="coerce")
+        fire = fire.loc[fire_type.isna() | fire_type.eq(0)].copy()
+
+    fire = fire.dropna(subset=["latitude", "longitude"])
+
+    # Broad Top End region.
+    fire = fire[
+        fire["latitude"].between(-17.5, -7.5)
+        & fire["longitude"].between(125.5, 136.5)
+    ].copy()
 
     return fire
-
 
 # CSS — MATCHES THE APPROVED MOCKUP
 
@@ -346,24 +354,115 @@ if nav=="🏠 Smoke Outlook":
             folium.Marker([lat,lon],tooltip=f"Selected: {location_name}",icon=folium.Icon(color="red",icon="home")).add_to(fmap)
             for name,(slat,slon) in STATION_COORDINATES.items():
                 folium.CircleMarker([slat,slon],radius=7,color="#0d74c8",fill=True,fill_opacity=.95,tooltip=f"Air quality station: {name}").add_to(fmap)
+            st.caption(
+                f"🔥 FIRMS detections for {predictor_date.date()}: {len(fires):,}"
+            )
+
             if not fires.empty:
-                fires["distance_to_user_km"]=haversine_km(fires["latitude"].to_numpy(),fires["longitude"].to_numpy(),lat,lon)
-                fires=fires[fires["distance_to_user_km"]<=500]
-                if "frp" in fires.columns and fires["frp"].notna().any():
-                    q1=float(fires["frp"].quantile(.33)); q2=float(fires["frp"].quantile(.67))
-                else:
-                    q1,q2=10.0,30.0
-                map_fires=fires.sort_values("frp",ascending=False,na_position="last").head(700)
-                for _,f in map_fires.iterrows():
-                    dist=f.get("distance_to_user_km",np.nan); frp=f.get("frp",np.nan)
-                    if pd.isna(frp): size,level=22,"Unknown intensity"
-                    elif frp<=q1: size,level=22,"Lower intensity"
-                    elif frp<=q2: size,level=31,"Medium intensity"
-                    else: size,level=42,"Higher intensity"
-                    icon_html=f"<div style='font-size:{size}px;line-height:{size}px;width:{size+8}px;height:{size+8}px;text-align:center;filter:drop-shadow(0 2px 2px rgba(0,0,0,.30));'>🔥</div>"
-                    fire_icon=folium.DivIcon(html=icon_html,icon_size=(size+8,size+8),icon_anchor=((size+8)//2,size+4))
-                    folium.Marker([f["latitude"],f["longitude"]],icon=fire_icon,tooltip=f"🔥 {level} · {safe_num(dist)} km away",popup=f"<b>Active fire detection</b><br>Intensity: {level}<br>FRP: {safe_num(frp)} MW<br>Distance: {safe_num(dist)} km").add_to(fmap)
-            st_folium(fmap,height=520,use_container_width=True,returned_objects=[],key=f"map_{location_name}_{selected_date}")
+                fires["distance_to_user_km"] = haversine_km(
+                    fires["latitude"].to_numpy(),
+                    fires["longitude"].to_numpy(),
+                    lat,
+                    lon
+                )
+
+                fires = fires[
+                    fires["distance_to_user_km"] <= 500
+                ].copy()
+
+                def fire_intensity(frp):
+                    if pd.isna(frp):
+                        return "Unknown", "#6b7280", 24
+                    frp = float(frp)
+                    if frp < 10:
+                        return "Low", "#f6b73c", 26
+                    if frp < 50:
+                        return "Moderate", "#f57c00", 32
+                    return "High", "#d62828", 40
+
+                map_fires = fires.sort_values(
+                    "frp",
+                    ascending=False,
+                    na_position="last"
+                ).head(800)
+
+                for _, fire_row in map_fires.iterrows():
+                    fire_lat = float(fire_row["latitude"])
+                    fire_lon = float(fire_row["longitude"])
+                    frp = fire_row.get("frp", np.nan)
+                    dist = fire_row.get("distance_to_user_km", np.nan)
+
+                    level, marker_color, size = fire_intensity(frp)
+
+                    icon_html = f"""
+                    <div style="
+                        width:{size}px;
+                        height:{size}px;
+                        border-radius:50%;
+                        background:{marker_color};
+                        border:3px solid white;
+                        box-shadow:0 2px 7px rgba(0,0,0,.45);
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:{max(16, int(size*0.62))}px;
+                        line-height:1;
+                    ">🔥</div>
+                    """
+
+                    fire_icon = folium.DivIcon(
+                        html=icon_html,
+                        icon_size=(size, size),
+                        icon_anchor=(size // 2, size // 2),
+                    )
+
+                    folium.Marker(
+                        [fire_lat, fire_lon],
+                        icon=fire_icon,
+                        tooltip=(
+                            f"🔥 {level} intensity · "
+                            f"{safe_num(frp)} MW · "
+                            f"{safe_num(dist)} km away"
+                        ),
+                        popup=(
+                            f"<b>Active fire detection</b><br>"
+                            f"Intensity: {level}<br>"
+                            f"FRP: {safe_num(frp)} MW<br>"
+                            f"Distance: {safe_num(dist)} km"
+                        ),
+                    ).add_to(fmap)
+
+                legend_html = """
+                <div style="
+                    position: fixed;
+                    bottom: 30px;
+                    left: 30px;
+                    z-index: 9999;
+                    background: rgba(255,255,255,.96);
+                    border: 1px solid #d8dee6;
+                    border-radius: 10px;
+                    padding: 10px 12px;
+                    font-size: 12px;
+                    color: #17395f;
+                    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+                ">
+                    <b>🔥 Fire intensity (FRP)</b><br>
+                    <span style="color:#f6b73c">●</span> Low: &lt; 10 MW<br>
+                    <span style="color:#f57c00">●</span> Moderate: 10–49.9 MW<br>
+                    <span style="color:#d62828">●</span> High: ≥ 50 MW
+                </div>
+                """
+                fmap.get_root().html.add_child(
+                    folium.Element(legend_html)
+                )
+
+            st_folium(
+                fmap,
+                height=520,
+                width="stretch",
+                returned_objects=[],
+                key=f"map_{location_name}_{selected_date}",
+            )
         else:
             st.info("Install folium and streamlit-folium for the interactive map.")
 
