@@ -1,11 +1,9 @@
 {
-  "project": "Fire2Air Darwin",
-  "threshold_pm25_ug_m3": 25.0,
-  "max_fire_distance_km": 500.0,
-  "split_basis": "target_date",
-  "train_target_years": "2018-2022",
-  "validation_target_year": 2023,
-  "test_target_year": 2024,
+  "model": "Logistic Regression",
+  "config": "C=0.1",
+  "threshold": 0.78,
+  "primary_selection_metric": "PR_AUC",
+  "threshold_selection_metric": "F1",
   "features": [
     "station",
     "pm25_mean",
@@ -29,10 +27,5 @@
     "month_cos",
     "pm25_lag1",
     "pm25_3day_mean"
-  ],
-  "targets": {
-    "classification": "target_pm25_over_25_next_day",
-    "regression": "target_pm25_next_day",
-    "count": "target_hours_ge_25_next_day"
-  }
+  ]
 }
