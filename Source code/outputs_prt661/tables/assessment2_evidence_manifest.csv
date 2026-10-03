@@ -1,0 +1,14 @@
+Assessment2_Area,Evidence,Purpose
+Updated architecture,figures/01_updated_architecture.png,Implemented pipeline diagram
+Data acquisition/schema,tables/epa_raw_overview.csv; tables/firms_file_audit.csv,Actual file/date/schema evidence
+Data quality,tables/epa_missing_pct_year_station_variable.csv,Year × station × variable missingness
+Cleaning/preprocessing,tables/epa_cleaning_log.csv; tables/epa_pressure_unit_audit.csv,Auditable cleaning and unit rules
+Data engineering,Fire2Air_model_ready_checkpoint.csv; Fire2Air_feature_manifest.json,Shared 500 km leakage-safe modelling table
+EDA/visualisation,figures/02...11,"Trend, distribution, season, missingness, fire, wind and correlations"
+Model 1 experiments,tables/model1_classification_validation_results.csv,PR-AUC-first classification selection
+Model 2 experiments,tables/model2_regression_validation_results.csv,Persistence + MAE/RMSE/R²
+Model 3 experiments,tables/model3_count_validation_results.csv,Count-specific Poisson/Tweedie/RF/XGB comparison
+Final evaluation,tables/model1/model2/model3 final_2024_metrics.csv,Untouched target-year 2024 results
+Explainability,figures/model3_shap_*; figures/model3_count_permutation_importance.png,Count-model SHAP + permutation importance
+Model artefacts,models/*.joblib,Reproducible fitted pipelines
+Governance,ADD REAL GitHub/Jira screenshots separately,Must come from genuine team activity
