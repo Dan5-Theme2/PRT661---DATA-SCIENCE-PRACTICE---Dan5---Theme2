@@ -1,0 +1,3 @@
+Task,Model,Config,Threshold,PR_AUC,Average_Precision,ROC_AUC,Brier,Accuracy,Precision,Recall,F1,False_Negatives,False_Positives,Raw_Negative_Predictions,MAE,RMSE,R2,Mean_Poisson_Deviance,Prediction_Min,Prediction_Max
+Model 1 - Classification,Logistic Regression,C=0.01,0.87,0.278601621547518,0.2950119559652487,0.9234670505856946,0.0988490204493185,0.9385863267670916,0.3,0.3243243243243243,0.3116883116883117,25.0,28.0,,,,,,,
+Model 3 - Count,Poisson Regression,alpha=0.1,,,,,,,,,,,,0.0,1.3057500149021646,2.1641796814620924,0.4575263108421108,1.8844604354763104,0.0152708408729908,13.524357185234736
