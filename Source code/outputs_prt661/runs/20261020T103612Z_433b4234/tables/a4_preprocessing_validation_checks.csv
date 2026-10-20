@@ -1,0 +1,21 @@
+check,passed
+unique station-date checkpoint keys,True
+93 compatible predictors,True
+all required feature columns present,True
+no target in predictors,True
+no infinite predictor values,True
+one-day target alignment,True
+duration targets bounded,True
+duration targets integer,True
+24-hour rule preserved,True
+18-hour mean rule preserved,True
+no-FRP knowledge is not zero,True
+all-missing FRP stays unknown,True
+empty eligible FRP set is zero,True
+known FRP sums correctly,True
+missing confidence stays unknown,True
+known confidence maps correctly,True
+known fire computes finite positive FSI,True
+missing direction produces unknown FSI,True
+missing FRP produces unknown FSI,True
+empty 6-hour window gives zero FRP,True
