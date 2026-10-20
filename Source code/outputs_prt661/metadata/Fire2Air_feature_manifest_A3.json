@@ -1,6 +1,74 @@
 {
   "project": "Fire2Air Darwin",
-  "assessment": 3,
+  "assessment": 4,
+  "pipeline_version": "a4-data-quality-v1",
+  "run_id": "20261020T103612Z_433b4234",
+  "generated_at_utc": "2026-10-20T10:38:52.585880+00:00",
+  "checkpoint_sha256": "062f137388d579b3c3c13f72193c227dd2a010c77e8cfd1d9bc85f07c6c71f4b",
+  "input_files": [
+    {
+      "file": "ntepa_greater_darwin_hourly_2018_2024.csv",
+      "bytes": 17205850,
+      "sha256": "5da42c08c8988b5111d6fd659c65cc34ea345d86cce0f1b1feb5270af85d6281"
+    },
+    {
+      "file": "fire_archive_SV-C2_784091 2018.csv",
+      "bytes": 687131879,
+      "sha256": "c85d5aceb2e5f54595716016c5d6775bca0f116e080a319baef95d75ec6e6328"
+    },
+    {
+      "file": "fire_archive_SV-C2_784097 2024.csv",
+      "bytes": 80583180,
+      "sha256": "39bd85190826829c3eccc994db4a3dcedc50d3a65261693e0667a6c61efb8b81"
+    },
+    {
+      "file": "fire_archive_SV-C2_784103 2023.csv",
+      "bytes": 152516116,
+      "sha256": "750d415bb883c2366ea4d54c541daef04add2d4d8fef3c023763da73079a3b60"
+    },
+    {
+      "file": "fire_archive_SV-C2_784113 2022.csv",
+      "bytes": 66182826,
+      "sha256": "a1db92c9dace4b082cee8f991547695d891f8809ba12847f54472ffd78e0613a"
+    },
+    {
+      "file": "fire_archive_SV-C2_784125 2021.csv",
+      "bytes": 67392971,
+      "sha256": "469365d52fa31b4a2c0d965e18f1b7c0b4474a88e3a91d1ec25cf4a08041ec5a"
+    },
+    {
+      "file": "fire_archive_SV-C2_784129 2020.csv",
+      "bytes": 69708753,
+      "sha256": "213cc572d7d1367bc4156dd7da89e2596bbb4a6d780ce146e48488e5066c33d5"
+    },
+    {
+      "file": "fire_archive_SV-C2_784133 2019.csv",
+      "bytes": 129842191,
+      "sha256": "aaf39efc0d12bd24457125a5a03eb972dc11d559eae8e805369569e899e7d6a6"
+    }
+  ],
+  "versions": {
+    "python": "3.13.9",
+    "numpy": "2.3.5",
+    "pandas": "2.3.3"
+  },
+  "date_semantics": {
+    "date": "observation day through end-of-day cutoff",
+    "target_date": "next calendar day",
+    "operational_issue_time": "not established by historical data"
+  },
+  "quality_policy": {
+    "classification_operator": ">",
+    "hourly_duration_operator": ">=",
+    "min_valid_mean_hours": 18,
+    "required_duration_hours": 24,
+    "missing_wind": "preserve unknown wind-dependent fire features when fires exist",
+    "missing_frp": "strict aggregate: unknown if any eligible FRP is missing",
+    "missing_confidence": "unknown FSI contribution; no automatic highest-confidence assumption",
+    "calendar": "full station daily calendar; row lags correspond to calendar days",
+    "circular_direction_resultant_min": 1e-06,
+    "firms_coverage": "archive UTC-date presence proxy; not verified observational completeness"
+  },
   "system_concept": "Wind-Aligned Smoke Exposure Intelligence",
   "novelty_feature": "Fire Smoke Influence Index (FSI)",
   "threshold_pm25_ug_m3": 25.0,

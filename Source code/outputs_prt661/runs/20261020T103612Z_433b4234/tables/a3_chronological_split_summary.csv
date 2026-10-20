@@ -1,0 +1,4 @@
+target,train_rows_target_2018_2022,validation_rows_target_2023,test_rows_target_2024,min_target_date,max_target_date
+target_pm25_over_25_next_day,4546,946,863,2018-01-03,2024-12-31
+target_pm25_next_day,4546,946,863,2018-01-03,2024-12-31
+target_hours_ge_25_next_day,2415,661,645,2018-01-30,2024-12-30
