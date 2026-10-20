@@ -1,0 +1,5 @@
+Condition,Station_days
+"Complete coverage, no eligible fires",731
+"Fires present, missing wind direction",638
+"Fires present, missing direction or speed",657
+Incomplete 48-hour coverage,168
