@@ -537,13 +537,15 @@ GitHub commits, pull requests, meeting records and Jira evidence support contrib
 
 ## Limitations
 
-- Data availability and coverage differ between stations and periods.
-- Satellite detections do not directly measure ground-level smoke exposure.
-- FSI uses simplified transport assumptions.
-- Overall metrics can conceal missed elevated events and severe-day underprediction.
-- Historical performance does not establish reliable transfer to future periods or new locations.
-- Notebook paths and local output copies require manual management.
-- A complete operational refresh, monitoring and retraining service has not been demonstrated.
+- Classification missed many elevated-PM₂.₅ events, so low predicted risk does not rule out elevated pollution.
+- Regression underestimated concentrations on elevated days, while duration prediction was less accurate during prolonged episodes.
+- Evaluation covers three monitoring stations and the historical 2024 test period. Reliable transfer to new locations or future periods has not been established.
+- Fire features and FSI did not consistently improve performance across all three prediction tasks.
+- FSI uses simplified transport assumptions and has not been validated as a physical measure of smoke exposure.
+- Missing observations and unequal station coverage affect which station-days can be evaluated. Input completeness does not represent forecast certainty.
+- The demonstrated forecasts are historical research outputs, not a live warning service.
+- A complete source-to-dashboard run using one verified preprocessing version has not been confirmed. Local file paths and output copies require manual management.
+- Automated refresh, operational monitoring and controlled retraining remain future work.
 
 Further work includes calibration, improved elevated-event performance, broader temporal evaluation, portable configuration and verified source-to-dashboard version consistency.
 
