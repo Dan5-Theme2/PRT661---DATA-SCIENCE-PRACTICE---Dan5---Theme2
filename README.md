@@ -1,263 +1,177 @@
+
 # Fire2Air Darwin
 
-## Explainable Next-Day Smoke and PM₂.₅ Forecasting for Greater Darwin
+## Explainable Next-Day Smoke and PM₂.₅ Forecasting
 
 **Unit:** PRT661 – Data Science Practice  
-**Theme:** Theme 2 – Predictive Analytics and Forecasting  
 **Group:** DAN5 – Theme 2  
 **Semester:** Semester 2, 2026
 
-## Project Overview
+Fire2Air Darwin combines NT EPA air-quality and weather observations with NASA FIRMS satellite fire detections to investigate next-day PM₂.₅ conditions at Palmerston, Winnellie and Stokes Hill.
 
-Fire2Air Darwin combines NT EPA air-quality and weather observations with NASA FIRMS VIIRS satellite fire detections to investigate next-day PM₂.₅ conditions at Palmerston, Winnellie and Stokes Hill.
+The project uses historical data from 2018–2024 and includes three complementary prediction tasks:
 
-The project uses historical data from 2018–2024. Three modelling tasks produce complementary predictions:
-
-| Task | Output |
+| Model | Prediction task |
 |---|---|
-| Classification | Probability that next-day daily mean PM₂.₅ exceeds 25 µg/m³ |
-| Regression | Expected next-day daily mean PM₂.₅ concentration in µg/m³ |
-| Count / Duration Prediction | Expected number of next-day hours with PM₂.₅ at or above 25 µg/m³ |
+| Model 1 – Classification | Probability that next-day daily mean PM₂.₅ exceeds 25 µg/m³ |
+| Model 2 – Regression | Next-day daily mean PM₂.₅ concentration in µg/m³ |
+| Model 3 – Duration / Count | Number of hours during the next day with PM₂.₅ at or above 25 µg/m³ |
 
-The daily classification target uses **greater than 25 µg/m³**, while the hourly duration target uses **at or above 25 µg/m³**. The hourly threshold is a project-defined indicator.
+The results support visualisation, model evaluation and public and administrator dashboards.
 
-Predictions are integrated into a Tomorrow Smoke Outlook and presented through public and administrator dashboards. The demonstrated forecasts are historical research outputs, not live warnings.
+Displayed forecasts are historical research outputs rather than live warnings. The hourly threshold used in the duration task is a project-defined indicator.
 
-## Quick Guide for Lecturers and Reviewers
+## Quick Guide for Lecturers and Evaluators
 
-| Review task | Where to start | AWS access required? |
+The project can be reviewed through the following resources:
+
+| Resource | Purpose |
+|---|---|
+| [User dashboard](https://fire2airdarwin-cdu-prt661-datasciencepractice-user-dashboard.streamlit.app/) | Explore the public-facing presentation of historical forecasting outputs |
+| [Administrator dashboard](https://prt661---data-science-practice---dan5---theme2-vdb3z6nuf8appxk.streamlit.app/) | Explore analytical results and supporting project information |
+| [AWS account sign-in](https://646468992009.signin.aws.amazon.com/console) | Sign in using the authorised account details supplied privately |
+| [Fire2Air S3 bucket](https://ap-southeast-2.console.aws.amazon.com/s3/buckets/fire2air-darwin-dan5-646468992009-ap-southeast-2-an?region=ap-southeast-2&tab=objects) | Inspect stored project data and outputs after signing in |
+| `AWS/AWS_evidences/` | Review recorded AWS implementation evidence |
+| `Assesment Reports/` | Read the assessment reports |
+
+AWS access requires appropriate permissions. The sign-in and S3 links do not grant access by themselves.
+
+Lecturer access details must be supplied privately by the project team. Do not place passwords, access keys, secret keys or session tokens in this README or other repository files.
+
+## Two Execution Options
+
+The repository contains separate AWS-integrated and local code sets.
+
+The AWS workflow uses Amazon S3 for shared storage. The local workflow is available when AWS access or services are unavailable.
+
+| Workflow | Notebook location | Storage |
 |---|---|---|
-| Inspect local notebooks | `Source code/` | No |
-| Inspect AWS-integrated notebooks | `AWS/AWS_integrations/` | No, to read the code |
-| Review committed tables and figures | `Source code/outputs_prt661/` | No |
-| Review AWS screenshots | `AWS/AWS_evidences/` | No |
-| Inspect shared S3 objects | Fire2Air S3 bucket link below | Yes |
-| Run AWS-dependent notebook cells | AWS-integrated workflow below | Yes |
-| Run dashboards using supplied local inputs | Dashboard instructions below | No |
-| Review contribution evidence | GitHub history, pull requests and final report | Repository access |
+| AWS-integrated | `AWS/AWS_integrations/` | Reads inputs from S3 and writes configured outputs to S3 |
+| Local | `Source code/` | Reads locally available datasets and writes outputs to local folders |
 
-Access to the GitHub repository does not grant access to AWS.
+These are separate implementations. Paths, configuration and available outputs should be checked before execution.
 
-### AWS Console Access
-
-**AWS account ID:** `646468992009`  
-**Project region:** `ap-southeast-2`  
-**S3 bucket:** `fire2air-darwin-dan5-646468992009-ap-southeast-2-an`
-
-- [Open the AWS account sign-in page](https://646468992009.signin.aws.amazon.com/console)
-- [Open the Fire2Air S3 bucket](https://ap-southeast-2.console.aws.amazon.com/s3/buckets/fire2air-darwin-dan5-646468992009-ap-southeast-2-an?region=ap-southeast-2&tab=objects)
-
-These links require an authorised AWS account or session and appropriate permissions.
-
-If using an IAM user, use the username and password provided privately by the project team. If the team provides a different access method, follow those instructions instead. Contact the project team through the course communication channel if access has not been arranged.
-
-After signing in, open S3 and select the project bucket. Saved outputs can be inspected without rerunning the models.
-
-If access is denied, ask the team to check the assigned permissions. Reading outputs and publishing new outputs require different permissions.
-
-Passwords, access keys, secret keys and session tokens are not included in this repository.
-
-### Checking Saved AWS Outputs
-
-Within the bucket:
-
-1. Open `processed/model_ready/` to inspect the modelling checkpoint and feature manifest.
-2. Open `outputs/model1/`, `outputs/model2/` and `outputs/model3/` to inspect model results.
-3. Open `outputs/visualisation/` to inspect integration tables and figures.
-4. Open `dashboard/` to inspect dashboard-ready outputs.
-5. Open `documentation/` to inspect generated documentation.
-
-Check object names, sizes and Last modified timestamps. Download CSV, JSON or image files where needed for inspection.
-
-Names and timestamps alone do not establish that all objects belong to the same approved run. Use available manifests and file inventories when checking version consistency.
-
-Running notebooks may upload or replace project objects. Reviewing saved outputs does not require execution.
-
-## Data and Modelling
-
-### Data Sources
-
-- **NT EPA Air Quality Network:** PM₂.₅, PM₁₀ and available weather observations, including temperature, humidity, wind speed, wind direction, pressure and rainfall.
-- **NASA FIRMS VIIRS:** satellite fire locations, acquisition times, Fire Radiative Power (FRP), confidence and fire type where available.
-
-Observation availability and coverage differ between stations and periods.
-
-### Feature Engineering
-
-The notebooks include data auditing, daily aggregation, next-day target alignment and feature engineering using:
-
-- Air-quality and weather measurements
-- Lagged and rolling summaries
-- Seasonal indicators
-- Fire activity, distance and bearing
-- Fire intensity and age
-- Wind alignment and upwind fire measures
-- Fire Smoke Influence Index (FSI)
-- Input coverage and completeness indicators
-
-FSI is an engineered predictor. It is not a validated atmospheric dispersion model, measured smoke concentration or probability.
-
-The local preprocessing implementation also includes versioned outputs, validation checks, run-status records and file inventories.
-
-### Evaluation
-
-The chronological design uses:
-
-| Stage | Target years |
-|---|---|
-| Initial training | 2018–2022 |
-| Validation | 2023 |
-| Historical testing | 2024 |
-
-Model selection, refitting and evaluation details are documented in the individual notebooks.
-
-| Task | Main evaluation measures |
-|---|---|
-| Classification | PR-AUC, precision, recall and F1-score |
-| Regression | MAE, RMSE and R² |
-| Count / Duration | MAE, RMSE, R² and mean Poisson deviance |
-
-Additional evaluation includes baseline comparisons, station-level results, feature-group ablation, elevated-event diagnostics and uncertainty analysis.
-
-Overall metrics should be interpreted alongside missed elevated events and errors during high-concentration or prolonged-pollution conditions.
-
-SHAP and permutation importance describe predictive relationships, not causation.
+Switching between workflows is manual. Running a notebook does not automatically switch the dashboard to its new outputs.
 
 ## Repository Structure
 
-The main folders and subfolders are organised as follows:
+The main folders are shown below in repository order. Comments briefly describe their purpose.
 
 ```text
 PRT661---DATA-SCIENCE-PRACTICE---Dan5---Theme2/
-├── ArchitectureDiagrams/              # System architecture diagrams
-├── Assesment Reports/                 # Assessment reports
+├── ArchitectureDiagrams/                 # System architecture diagrams
+├── Assesment Reports/                    # Assessment reports
 ├── AWS/
-│   ├── AWS_evidences/                 # AWS implementation evidence
-│   └── AWS_integrations/              # AWS-integrated notebooks
-├── Change log/                        # Project change records
-├── Dashboard/                         # Streamlit apps and local input files
+│   ├── AWS_evidences/                    # Recorded AWS implementation evidence
+│   └── AWS_integrations/                 # AWS-integrated notebooks
+├── Change log/                          # Project change records
+├── Dashboard/                           # Dashboard scripts, dependencies and inputs
 ├── Documentation/
-│   └── Research Papers/               # Supporting research papers
-├── Environment setup instructions/    # Environment setup guidance
-├── Execution instructions/            # Workflow execution guidance
-├── Models/                            # Model-related files
-├── Outputs/                           # Project output files
-├── Planning/                          # Project planning material
+│   └── Research Papers/                 # Supporting research material
+├── Environment setup instructions/      # Environment setup guidance
+├── Execution instructions/              # Execution guidance
+├── Models/                              # Model-related project files
+├── Outputs/                             # Project output files
+├── Planning/                            # Planning material
 ├── Project Planning Records/
-│   ├── Meeting Minutes/               # Written meeting minutes
-│   ├── Meeting Records/               # Meeting records
-│   └── Spring Plannning Screenshots/   # Planning screenshots
-├── Reproducibility Artefacts/          # Reproducibility supporting files
-├── Requirements files/                # Dependency requirements
+│   ├── Meeting Minutes/                 # Meeting minutes
+│   ├── Meeting Records/                 # Meeting records
+│   └── Spring Plannning Screenshots/     # Planning screenshots
+├── Reproducibility Artefacts/            # Supporting reproducibility material
+├── Requirements files/                  # Dependency-related files
 ├── Source code/
-│   ├── Datasets/                      # Local source datasets
+│   ├── Datasets/                        # Local source datasets
 │   └── outputs_prt661/
-│       ├── figures/                   # Generated figures
-│       ├── metadata/                  # Manifests and inventories
-│       ├── models/                    # Saved model artefacts
-│       ├── processed/                 # Processed checkpoints
-│       ├── runs/                      # Versioned preprocessing runs
-│       └── tables/                    # Evaluation and integration tables
-├── Task Allocation/                   # Team task allocation records
-├── Technical Artefacts/               # Technical supporting material
-├── Visualisations/                    # Visualisation material
-├── Workflow Diagrams/                 # Workflow diagrams
-└── README.md                          # Project overview and running instructions
+│       ├── figures/                     # Exported plots
+│       ├── metadata/                    # Feature manifests and inventories
+│       ├── models/                      # Saved model artefacts
+│       ├── processed/                   # Processed data and checkpoints
+│       ├── runs/                        # Versioned preprocessing runs
+│       └── tables/                      # Predictions and evaluation tables
+├── Task Allocation/                     # Team allocation records
+├── Technical Artefacts/                 # Supporting technical material
+├── Visualisations/                      # Visualisation-related files
+├── Workflow Diagrams/                   # Workflow diagrams
+└── README.md                            # Project overview and execution guidance
 ```
 
-This structure shows the main folders and subfolders only. Folder names retain the spelling used in the repository.
+This is a simplified folder view. Notebook filenames and execution order are listed below.
 
-## Separate Code Sets: AWS and Local
-
-The repository contains two separate notebook sets:
-
-| Workflow | Location | Data and outputs |
-|---|---|---|
-| Primary — AWS-integrated | `AWS/AWS_integrations/` | Downloads shared inputs from S3 and uploads generated outputs to S3 |
-| Fallback — Local | `Source code/` | Reads locally available files and saves outputs on the computer |
-
-The AWS-integrated notebooks execute Python in the selected computer or notebook environment while using S3 for storage. They do not automatically execute on AWS compute infrastructure.
-
-The local workflow requires the necessary datasets, checkpoints, manifests and model outputs on the computer. Switching workflows is manual.
-
-The two code sets are separate implementations and are not automatically synchronised. Check the relevant notebook version and configuration rather than assuming equivalent behaviour.
-
-The dashboard applications read local input files in both cases.
+Folder names retain the spelling used in the repository.
 
 ## Setup
 
-Clone the repository and open it in VS Code:
+Clone the repository and enter its folder:
 
 ```powershell
 git clone https://github.com/Dan5-Theme2/PRT661---DATA-SCIENCE-PRACTICE---Dan5---Theme2.git
 cd PRT661---DATA-SCIENCE-PRACTICE---Dan5---Theme2
+```
+
+Open the project in VS Code:
+
+```powershell
 code .
 ```
 
-Use VS Code with Python and Jupyter support. Select the intended Python environment as the notebook kernel.
+Install Python and enable Python and Jupyter support in VS Code. Select the intended Python environment as the notebook kernel.
 
-Install common notebook dependencies into that environment:
-
-```powershell
-python -m pip install numpy pandas matplotlib scikit-learn joblib
-```
-
-For AWS-integrated notebooks, also install:
+Common notebook dependencies include:
 
 ```powershell
-python -m pip install "boto3[crt]" s3fs
+python -m pip install numpy pandas matplotlib scikit-learn joblib "boto3[crt]" s3fs
 ```
 
-Install optional modelling and explainability packages when required:
+Install additional modelling and explainability packages when required by the selected notebook:
 
 ```powershell
 python -m pip install xgboost shap
 ```
 
-These commands cover common imports. They are not a pinned environment specification. Check individual notebook imports and record package versions when reproducing results.
+These commands provide common dependencies. Check each notebook's imports and any relevant requirements files for additional packages.
+
+Dashboard dependencies are installed separately using `Dashboard/requirements.txt`.
 
 ## AWS Workflow
 
 **Notebook folder:** `AWS/AWS_integrations/`  
-**Region:** `ap-southeast-2`
+**AWS region:** `ap-southeast-2`  
+**S3 bucket:** `fire2air-darwin-dan5-646468992009-ap-southeast-2-an`
 
-### Programmatic Access Requirements
+The AWS-integrated notebooks execute Python in the selected computer or notebook environment and use Amazon S3 for shared storage.
 
-Running AWS-dependent code requires valid credentials available to the notebook's Python environment.
+### Authentication and Access
 
-Console sign-in alone does not configure Python authentication. Reading S3 inputs requires read permissions; publishing outputs requires write permissions. Glue and Athena operations require additional service permissions.
+Before running the notebooks:
 
-Use the team's approved authentication method and request access from the project team where necessary.
+1. Obtain authorised programmatic access from the project team.
+2. Configure the AWS authentication method required by the notebook.
+3. Check whether the notebook explicitly selects an AWS profile.
+4. Confirm that the session is valid and has the required S3 permissions.
 
-### Authentication and Verification
+Where a notebook selects the `fire2air` profile, that profile must be available in the execution environment.
 
-For the team's AWS CLI login workflow, run:
+AWS Console sign-in and programmatic authentication are separate. Signing in through a browser does not, by itself, configure credentials for Python or the AWS CLI.
 
-```powershell
-aws login
-```
-
-Use AWS CLI supporting this command. Enter `ap-southeast-2` when prompted for the project region.
-
-Verify authentication:
+If the AWS CLI is installed, the following commands can help check access using the configured default session:
 
 ```powershell
 aws sts get-caller-identity
-```
-
-Verify shared S3 access:
-
-```powershell
 aws s3 ls s3://fire2air-darwin-dan5-646468992009-ap-southeast-2-an/
 ```
 
-Ensure the notebook uses the intended authorised AWS session. If a notebook explicitly configures a named profile, that profile must also be configured on the current computer.
+To check the named `fire2air` profile instead:
 
-Reauthenticate if the session expires. Do not paste credentials into notebook cells or commit them to GitHub.
+```powershell
+aws sts get-caller-identity --profile fire2air
+aws s3 ls s3://fire2air-darwin-dan5-646468992009-ap-southeast-2-an/ --profile fire2air
+```
 
-### Notebook Order
+An identity response confirms the active AWS identity. A successful S3 listing confirms listing access to the requested location; it does not establish every permission needed to execute the workflow.
 
-Run these notebooks under `AWS/AWS_integrations/`:
+### Notebook Execution Order
+
+Run the notebooks in the following order:
 
 | Order | Notebook |
 |---|---|
@@ -269,50 +183,57 @@ Run these notebooks under `AWS/AWS_integrations/`:
 
 For each notebook:
 
-1. Check configured inputs, output destinations and local working paths.
-2. Select the intended kernel.
+1. Select the intended kernel.
+2. Check its configuration, input locations and output locations.
 3. Restart the kernel and run all cells.
-4. Review errors, warnings and missing-input messages.
-5. Confirm expected outputs before continuing.
+4. Resolve errors and confirm the required outputs before continuing.
 
-The models depend on preprocessing outputs. Integration requires predictions from all three models using compatible input versions.
+Run preprocessing before the model notebooks. Run visualisation and integration after the required predictions from all three models are available.
 
-Several AWS notebooks use `/tmp/fire2air_a3` as a local workspace. Check that the configured workspace is appropriate and writable on the execution machine.
+The model and integration notebooks should use compatible preprocessing outputs and matching evaluation periods.
 
 ### S3 Locations
 
-| S3 prefix | Contents |
+The AWS workflow uses the following S3 prefixes:
+
+| Prefix | Purpose |
 |---|---|
-| `raw/ntepa/` | Source air-quality and weather observations |
-| `raw/firms/` | Source fire detections |
+| `raw/ntepa/` | Source air-quality and weather data |
+| `raw/firms/` | Source satellite fire detections |
 | `processed/ntepa_daily/` | Daily station observations |
-| `processed/firms_daily/` | Daily fire features |
-| `processed/model_ready/` | Shared modelling checkpoint and manifest |
+| `processed/firms_daily/` | Daily fire data |
+| `processed/model_ready/` | Shared modelling data and feature information |
 | `models/model1/` | Classification model artefacts |
 | `models/model2/` | Regression model artefacts |
-| `models/model3/` | Count-model artefacts |
-| `outputs/data_processing/` | Preprocessing outputs and audits |
+| `models/model3/` | Duration/count model artefacts |
+| `outputs/data_processing/` | Preprocessing outputs and supporting evidence |
 | `outputs/model1/` | Classification results |
 | `outputs/model2/` | Regression results |
-| `outputs/model3/` | Count-model results |
-| `outputs/visualisation/` | Integration tables and figures |
-| `dashboard/` | Dashboard-ready outputs |
-| `documentation/` | Generated documentation |
-| `athena-results/` | Athena query results |
+| `outputs/model3/` | Duration/count results |
+| `outputs/visualisation/` | Integrated results and visualisations |
+| `dashboard/` | Dashboard-related outputs |
+| `documentation/` | Generated documentation and supporting evidence |
 
-Committing code to GitHub does not refresh S3 outputs. Publishing requires successful execution of the relevant notebooks.
+Check each notebook's configured S3 keys and execution messages for the exact files it reads and writes.
 
-## Local Fallback
+### Lecturer Access to Saved Outputs
+
+- [Open the AWS account sign-in page](https://646468992009.signin.aws.amazon.com/console)
+- [Open the Fire2Air S3 bucket](https://ap-southeast-2.console.aws.amazon.com/s3/buckets/fire2air-darwin-dan5-646468992009-ap-southeast-2-an?region=ap-southeast-2&tab=objects)
+
+Authorised lecturers can inspect saved outputs without rerunning the full modelling workflow.
+
+Access details must be obtained privately from the project team. If access is denied, confirm the account, session and assigned permissions with the team.
+
+## Local Workflow
 
 **Notebook folder:** `Source code/`  
-**Source datasets:** `Source code/Datasets/`  
-**Shared outputs:** `Source code/outputs_prt661/`
+**Local dataset folder:** `Source code/Datasets/`  
+**Shared output folder:** `Source code/outputs_prt661/`
 
-The local workflow does not require AWS credentials once the necessary files are available on the computer. Downloading inputs from private S3 storage still requires authorised access.
+The local workflow requires the source datasets and matching project files to be available on the computer.
 
-### Notebook Order
-
-Run these notebooks under `Source code/`:
+### Notebook Execution Order
 
 | Order | Notebook |
 |---|---|
@@ -322,79 +243,36 @@ Run these notebooks under `Source code/`:
 | 4 | `Navodya - Model 3_Count_Explainability.ipynb` |
 | 5 | `Jenny - Visualisation and Documentation.ipynb` |
 
-Restart the kernel and run all cells in each notebook.
+Before running each notebook, inspect its path configuration. Some notebooks contain paths that must be adjusted for the current computer.
 
-If compatible preprocessing and model outputs already exist, integration can run without retraining every model.
+Restart the kernel and run all cells. Complete preprocessing first, then the three models, followed by visualisation and integration.
 
-### Path Configuration
+### Local Output Locations
 
-Check paths before execution. The notebooks do not yet share one portable path configuration.
+The following paths are relative to `Source code/`:
 
-| Notebook | Path considerations |
+| Folder | Contents |
 |---|---|
-| Preprocessing | Searches for a source directory containing `Datasets` |
-| Classification | Contains a machine-specific `SOURCE_CODE_DIR` setting |
-| Regression | Uses configured checkpoint and manifest inputs; writes outputs under the current user's Downloads folder |
-| Count Prediction | Uses source-folder selection and checkpoint-verification logic |
-| Visualisation | Uses `Path.cwd()` and reads model tables from the shared output directory |
+| `outputs_prt661/processed/` | Processed data, checkpoints and integrated dashboard-ready output |
+| `outputs_prt661/metadata/` | Feature manifests and file inventories |
+| `outputs_prt661/models/` | Saved model artefacts where configured |
+| `outputs_prt661/tables/` | Evaluation tables and prediction files |
+| `outputs_prt661/figures/` | Exported figures |
+| `outputs_prt661/runs/` | Versioned preprocessing runs |
 
-The supplied local regression notebook writes outputs under:
+Individual notebooks may write to different output locations.
+
+In particular, check the local regression notebook's configuration for:
 
 ```text
 <user home>/Downloads/Fire2Air_Model2/outputs_prt661_a3/
 ```
 
-The local integration notebook reads model tables from:
+Ensure the integration notebook reads the intended regression predictions. If files need to be copied or paths changed, use outputs from the matching model run.
 
-```text
-Source code/outputs_prt661/tables/
-```
+### Integration Inputs
 
-Copy the intended regression tables into the shared location, or configure integration to read their actual location.
-
-Include predictions, final metrics, station-level results, leave-one-station-out results and ablation tables as required.
-
-### Visualisation Working Directory
-
-From the repository root, open the source folder separately:
-
-```powershell
-code "Source code"
-```
-
-Open the local visualisation notebook in that window and verify the paths printed by its setup cell.
-
-Expected locations, relative to `Source code/`, are:
-
-```text
-Processed checkpoints:
-outputs_prt661/processed/
-
-Feature manifest:
-outputs_prt661/metadata/Fire2Air_feature_manifest_A3.json
-
-Model result tables:
-outputs_prt661/tables/
-```
-
-When all model tables are stored in the shared directory, the setup uses:
-
-```python
-regression_table_dir = table_dir
-```
-
-### Required Integration Inputs
-
-Key inputs include:
-
-```text
-Fire2Air_ntepa_daily_checkpoint_A3.csv
-Fire2Air_firms_daily_checkpoint_A3.csv
-Fire2Air_model_ready_checkpoint_A3.csv
-Fire2Air_feature_manifest_A3.json
-```
-
-The integrated outlook requires:
+The visualisation and integration workflow requires prediction tables from all three models:
 
 ```text
 a3_model1_2024_predictions.csv
@@ -402,70 +280,73 @@ a3_model2_2024_predictions.csv
 a3_model3_2024_predictions.csv
 ```
 
-The integration notebook does not train the models. Missing prediction files prevent generation of the complete outlook.
+Check that:
 
-### Output Locations
+- All three files are available at the configured input locations.
+- Required date and station fields are present.
+- Predictions refer to compatible evaluation periods.
+- The files belong to the intended preprocessing and model runs.
 
-Paths below are relative to `Source code/`:
+Missing or incompatible prediction files can prevent the combined outlook from being generated.
 
-| Folder | Contents |
-|---|---|
-| `outputs_prt661/processed/` | Processed checkpoints and local dashboard-ready output |
-| `outputs_prt661/metadata/` | Feature manifests and inventories |
-| `outputs_prt661/runs/` | Versioned preprocessing outputs |
-| `outputs_prt661/tables/` | Evaluation and integration tables |
-| `outputs_prt661/figures/` | Exported figures |
-| `outputs_prt661/models/` | Saved models where configured |
+**Checkpoint compatibility:** Some filenames retain `a3_` or `_A3` for compatibility. These suffixes alone do not identify the preprocessing version or prove that the files are current. Before integration, confirm that all three prediction files correspond to the intended approved checkpoint, model configuration and compatible station/date evaluation records. In the Assessment 4 report, the duration workflow had verified the regenerated checkpoint; equivalent verification for classification, regression and dashboard outputs was still outstanding.
 
-Individual notebooks may write to separate locations. Check their configured and printed paths.
+### Integrated Outputs
 
-The offline local workflow does not reproduce S3 publishing, IAM checks, Glue operations or Athena queries.
-
-## Tomorrow Smoke Outlook Outputs
-
-Integration joins the three prediction tables using `date`, `target_date` and `station`.
+Outputs produced by the visualisation and integration notebook include:
 
 | File | Purpose |
 |---|---|
-| `Fire2Air_Tomorrow_Smoke_Outlook_2024_A3.csv` | Integrated three-model outlook |
-| `Fire2Air_dashboard_ready_outlook_A3.csv` | Dashboard-ready output |
-| `a3_smoke_outlook_thresholds.json` | FSI thresholds and input-completeness rules |
-| `a3_08_tomorrow_smoke_outlook_example.png` | Example outlook figure |
-| `a3_final_2024_model_summary.csv` | Consolidated model metrics |
-| `a3_all_models_station_level_metrics.csv` | Station-level comparisons |
-| `a3_all_models_leave_one_station_out.csv` | Cross-station results |
-| `a3_all_models_ablation_results.csv` | Feature-group comparisons |
-| `a3_evidence_manifest.csv` | Supporting evidence index |
+| `a3_final_2024_model_summary.csv` | Consolidated model evaluation summary |
+| `a3_all_models_station_level_metrics.csv` | Station-level evaluation results |
+| `a3_all_models_leave_one_station_out.csv` | Available station holdout results |
+| `a3_all_models_ablation_results.csv` | Available feature ablation results |
+| `a3_evidence_manifest.csv` | Inventory of supporting output files |
+| `Fire2Air_Tomorrow_Smoke_Outlook_2024_A3.csv` | Combined historical outlook table |
+| `Fire2Air_dashboard_ready_outlook_A3.csv` | Dashboard-ready integrated output |
+| `a3_smoke_outlook_thresholds.json` | Outlook threshold information |
+| `a3_08_tomorrow_smoke_outlook_example.png` | Example outlook visualisation |
 
-The local integration generates `README_Fire2Air_Assessment3.md`, which is separate from the repository-root `README.md`.
-
-The `input_reliability` field reflects input completeness under the implemented rule. It is not calibrated forecast confidence.
+Availability depends on the required inputs and successful execution of the corresponding notebook sections. Check the notebook's printed output paths.
 
 ## Run the Dashboards
 
-The dashboard scripts read local files. They do not automatically download refreshed results from S3.
+### Hosted Dashboard Links
 
-Install dependencies from the repository root:
+- [Fire2Air User Dashboard](https://fire2airdarwin-cdu-prt661-datasciencepractice-user-dashboard.streamlit.app/)
+- [Fire2Air Administrator Dashboard](https://prt661---data-science-practice---dan5---theme2-vdb3z6nuf8appxk.streamlit.app/)
+
+The hosted dashboards present historical project outputs. Their deployment does not establish live forecasting or automatic synchronisation with newly generated notebook results.
+
+### Run Locally
+
+The dashboard scripts read local files.
+
+After running either the AWS or local workflow, make the intended dashboard input files available in the locations expected by the dashboard scripts. For AWS outputs, this may require downloading the relevant files from S3.
+
+Install dashboard dependencies from the repository root:
 
 ```powershell
 python -m pip install -r "Dashboard/requirements.txt"
 ```
 
-Start the public dashboard:
+Start the user dashboard:
 
 ```powershell
 python -m streamlit run "Dashboard/Fire2Air_User_Dashboard_V3_UI_FIXED.py"
 ```
 
-Or start the administrator dashboard:
+Start the administrator dashboard:
 
 ```powershell
 python -m streamlit run "Dashboard/Fire2Air_Admin_Analytics_Dashboard.py"
 ```
 
+Run each command in a separate terminal if both dashboards are needed at the same time.
+
 ### Dashboard Inputs
 
-The public dashboard reads its main inputs directly from `Dashboard/`:
+Main dashboard inputs include:
 
 ```text
 Fire2Air_dashboard_ready_outlook_A3.csv
@@ -474,87 +355,112 @@ Fire2Air_model_ready_checkpoint_A3.csv
 Fire2Air_feature_manifest_A3.json
 ```
 
-The administrator dashboard searches several local directories, including `Dashboard/` and source-code output folders. An older duplicate may be selected before a newer file.
+Place the required files in `Dashboard/` or check the input-search paths configured in the selected dashboard script.
 
-After regenerating results:
+Keep the input files consistent with the model run being displayed. Check for older copies in other searched folders, as these may cause outdated results to be loaded.
 
-1. Verify the intended matching input versions.
-2. Update dashboard input copies.
-3. Restart the application or clear its cache.
-4. Check displayed dates and values against the selected source files.
+After replacing inputs, restart the application or clear its cache and reload it.
 
-Starting a dashboard does not regenerate data or train models.
+`Dashboard_ready_csv_file_create.py` is an additional preparation script. Inspect and update its local paths before using it.
 
-The optional `Dashboard/Dashboard_ready_csv_file_create.py` utility contains machine-specific Windows paths. Update those paths before using it on another computer.
+## Evaluation and Interpretation
 
-## Reproducibility and Verification
+The chronological evaluation design uses:
 
-Use compatible checkpoints, feature manifests and model outputs throughout the selected workflow.
-
-The updated local preprocessing exports run identifiers, status records and SHA-256 inventories. Compare files against the approved run where those records are available.
-
-On Windows:
-
-```powershell
-Get-FileHash -Algorithm SHA256 "path\to\file"
-```
-
-Compare the calculated value with a trusted inventory. A hash without a reference does not establish that the file is approved.
-
-Matching filenames, dimensions or timestamps alone do not establish compatibility.
-
-AWS and local preprocessing notebooks contain different implementations. Do not assume that a safeguard or update in one exists in the other.
-
-Repository inspection does not establish successful execution. Identical results across both workflows and a complete verified source-to-dashboard rerun have not been confirmed by this README review.
-
-## Team Contributions
-
-| Member | Main responsibility |
+| Period | Purpose |
 |---|---|
-| Huynh Anh Thi Pham | Data processing, feature engineering and data-quality audits |
-| Lihini Jinanjalie Deniyelge | Classification, evaluation, AWS integration and public dashboard development |
-| Esangbedo Favour Ikponwosa | Regression, evaluation, AWS integration and initial administrator dashboard contribution |
-| Navodya Piumanthi Siriwardhana | Count prediction, explainability, AWS checks and administrator dashboard development |
-| Dieu Yen Diep / Jenny | Initial dashboard prototype, visualisation, integration, documentation and dashboard-ready outputs |
+| 2018–2022 | Initial training |
+| 2023 | Validation and model selection |
+| 2024 | Historical testing |
 
-Detailed individual contributions are documented in the final report and supported by repository activity.
+Model-specific selection, final refitting and evaluation procedures are documented in the notebooks and assessment reports.
 
-## Project Management and Evidence
+Evaluation includes task-specific metrics and supporting analyses where available:
 
-The team uses GitHub for version control and pull requests, Jira for task tracking, and Microsoft Teams for communication.
+| Task | Example evaluation measures |
+|---|---|
+| Classification | PR-AUC, recall, precision and F1-score |
+| Regression | MAE, RMSE and R² |
+| Duration / Count | MAE, RMSE and duration-related error analysis |
 
-Supporting material is organised under:
+Supporting analyses include persistence baselines, station-level results, feature ablation and elevated-pollution diagnostics.
 
-- `Assesment Reports/`
-- `AWS/AWS_evidences/`
-- `ArchitectureDiagrams/`
-- `Documentation/`
-- `Project Planning Records/`
-- `Reproducibility Artefacts/`
-- `Task Allocation/`
+### Model 3: Seven-Day Moving-Block Bootstrap
 
-GitHub commits, pull requests, meeting records and Jira evidence support contribution tracking and project decisions.
+Evaluation uncertainty for Model 3 (elevated-hour duration) was estimated using **300 moving-block bootstrap samples**, with blocks of **seven consecutive calendar days**. All eligible station observations were kept together within each sampled date. The resulting **95% percentile intervals** were **0.9625–1.7068 hours for MAE** and **1.6465–2.6460 hours for RMSE**. These intervals reflect uncertainty in the fitted model's overall evaluation metrics; they are **not prediction intervals for individual daily forecasts**. Sensitivity to other block lengths has not yet been tested.
+
+### Key Findings from the 2024 Historical Evaluation
+
+| Task | Reported result | Important limitation |
+|---|---|---|
+| Model 1 – Classification | Detected **12 of 37** elevated station-days, missing **25** (**32.43% recall**, threshold **0.87**) | A low predicted risk does not reliably exclude an elevated-PM₂.₅ day. |
+| Model 2 – Regression | Overall **RMSE 4.32 µg/m³**; elevated-day **RMSE 13.59 µg/m³** | **91.89%** of elevated-day concentrations were underpredicted. The model performed slightly worse than persistence on elevated days despite improving matched-cohort RMSE overall. |
+| Model 3 – Duration / Count | Overall **MAE 1.30 hours**; **MAE 8.35 hours** among the five observations with 13–24 elevated hours | **All five** prolonged observations were underpredicted. On observations matched to duration persistence, persistence had lower MAE but Poisson had lower RMSE. |
+
+These numbers refer to the saved historical evaluation reported in Assessment 4. They should not be treated as evidence that the dashboards are live or that all three models have been independently rerun against the latest preprocessing checkpoint.
+
+Overall metrics should be interpreted alongside missed elevated events and errors during prolonged or severe pollution episodes.
+
+The Fire Smoke Influence Index is an engineered predictor rather than a validated physical smoke-dispersion model. Input Data Completeness describes input availability rather than forecast certainty.
 
 ## Limitations
 
-- Classification missed many elevated-PM₂.₅ events, so low predicted risk does not rule out elevated pollution.
-- Regression underestimated concentrations on elevated days, while duration prediction was less accurate during prolonged episodes.
-- Evaluation covers three monitoring stations and the historical 2024 test period. Reliable transfer to new locations or future periods has not been established.
-- Fire features and FSI did not consistently improve performance across all three prediction tasks.
-- FSI uses simplified transport assumptions and has not been validated as a physical measure of smoke exposure.
-- Missing observations and unequal station coverage affect which station-days can be evaluated. Input completeness does not represent forecast certainty.
-- The demonstrated forecasts are historical research outputs, not a live warning service.
-- A complete source-to-dashboard run using one verified preprocessing version has not been confirmed. Local file paths and output copies require manual management.
-- Automated refresh, operational monitoring and controlled retraining remain future work.
+The project has several limitations. The key 2024 results are summarised above; more detailed diagnostics are provided in the Assessment 4 report.
 
-Further work includes calibration, improved elevated-event performance, broader temporal evaluation, portable configuration and verified source-to-dashboard version consistency.
+- **Elevated-event detection:** Strong overall results can coexist with missed elevated-PM₂.₅ events. Classification performance should therefore be assessed using event-level recall as well as overall metrics.
+- **Errors during severe pollution:** Regression and duration predictions can underestimate unusually high concentrations or prolonged elevated episodes.
+- **Limited geographical and temporal coverage:** The study covers three monitoring stations and uses 2024 as the historical test year. Performance elsewhere or in future years is not established.
+- **Data quality and availability:** Missing observations, monitoring coverage and preprocessing decisions can affect the modelling data and interpretation of results.
+- **Satellite fire information:** Satellite detections do not directly measure smoke exposure at monitoring stations. Detection timing, observation conditions and transport processes limit their interpretation.
+- **Engineered fire predictors:** Fire-related features and the Fire Smoke Influence Index simplify complex processes. Their inclusion does not guarantee improved predictive performance.
+- **Prediction uncertainty:** Input completeness and model outputs should not be treated as calibrated confidence estimates.
+- **Reproducibility and integration:** Separate AWS and local implementations, computer-specific paths and manual dashboard input updates require configuration checks. The duration run has checkpoint verification, but a clean, independently reproduced source-to-all-models-to-both-dashboards run has not yet been demonstrated.
+- **Operational readiness:** The project evaluates historical data. Live ingestion, scheduled execution, monitoring and controlled retraining would require further development.
+
+Detailed findings and discussion are provided in the assessment reports and model notebooks.
+
+
+## Team Contributions
+
+Fire2Air Darwin was developed collaboratively by five team members. Each member had primary responsibilities while also contributing to integration, evaluation, documentation and the final project delivery.
+
+| Team Member | Main Responsibilities | Key Contributions |
+|---|---|---|
+| **Huynh Anh Thi Pham** | Data Engineering and Feature Engineering | Developed and maintained the shared preprocessing workflow, expanding the feature set from 22 to 93 predictors. Implemented fire-related features, FSI, data coverage checks and missing-value safeguards. Corrected missing-wind handling, audited 657 affected station-days and supported publication of updated checkpoints to AWS S3. Prepared the project update summary and the governance and operational readiness sections of the final report. |
+| **Lihini Jinanjalie Deniyelge** | Model 1 – Classification, System Integration and User Dashboard | Developed and evaluated the next-day elevated-PM₂.₅ classification model using Logistic Regression, Random Forest and XGBoost. Conducted threshold selection, feature ablation, station-level and robustness analyses. Contributed to the system architecture and AWS integration. Further developed the public-facing Streamlit dashboard from the initial prototype, improving its interface, fire visualisation, historical forecast presentation and input-data labels. |
+| **Esangbedo Favour Ikponwosa** | Model 2 – Regression and Initial Admin Dashboard | Developed and evaluated the next-day PM₂.₅ concentration regression model, comparing Ridge Regression, Random Forest, XGBoost and persistence. Conducted station-level evaluation, feature ablation and elevated-pollution diagnostics. Updated the regression notebook to work with revised project data, regenerated evaluation results and implemented seven-day date-block bootstrap uncertainty analysis. Also contributed to the early administrator dashboard development. |
+| **Navodya Piumanthi Siriwardhana Senarath Mudiyanselage** | Model 3 – Duration Forecasting, AWS Integration, Admin Dashboard and Jira Coordination | Developed the elevated-PM₂.₅ duration model and evaluated candidate approaches, including persistence and zero baselines, feature ablation, prolonged-event diagnostics and seven-day moving-block bootstrap analysis. Contributed to preprocessing validation and reproducibility checks. Supported AWS S3, Glue and Athena integration, developed the final administrator dashboard and coordinated project tasks through Jira. Prepared the data engineering, feature calculations and results interpretation sections of the final report. |
+| **Dieu Yen (Jenny) Diep** | Initial Dashboard, Visualisation Integration and Project Documentation | Developed the initial Streamlit user dashboard prototype for exploring model predictions, weather, fire activity and historical evaluation results. Updated the visualisation and documentation notebooks, corrected integration paths and generated combined forecasting outputs. Revised the project README with AWS and local execution instructions, dashboard links, dependencies and reproducibility limitations. Prepared the Limitations and Conclusion sections of the Assessment 4 report and reviewed references, citations, figures, tables and overall document formatting. |
+
+### Contribution Evidence
+
+Individual contributions can be verified through GitHub commits, pull requests, Jira tasks and the Individual Work and Contribution Summary pages in the Assessment 4 final report.
+
+Some components were developed collaboratively or improved by different members at different stages. In particular, Jenny developed an initial user dashboard prototype, which Lihini subsequently extended into the final public dashboard. The initial administrator dashboard involved contributions from multiple members, while Navodya developed its final analytical interface.
+
+The responsibilities above describe documented project work and should not be interpreted as evidence that every proposed system capability has been fully deployed or independently reproduced.
+
+
+## Project Evidence and Documentation
+
+Supporting material is organised under:
+
+| Location | Material |
+|---|---|
+| `Assesment Reports/` | Assessment reports and project discussion |
+| `AWS/AWS_evidences/` | Recorded AWS implementation evidence |
+| `ArchitectureDiagrams/` | Architecture diagrams |
+| `Documentation/` | Supporting documentation and research material |
+| `Project Planning Records/` | Meeting and planning records |
+| `Reproducibility Artefacts/` | Supporting reproducibility material |
+| `Task Allocation/` | Team responsibility records |
+
+GitHub commits, pull requests and Jira records provide additional evidence of development and individual contributions. Relevant evidence links are included in the final report.
 
 ## Responsible Use
 
-Fire2Air Darwin is an educational research and decision-support prototype. It is not an official smoke-warning service or a source of medical advice.
+Fire2Air Darwin is an educational research prototype.
 
-The demonstrated forecasts use historical data. Low predicted risk does not rule out elevated pollution.
+It is not an official smoke-warning service or a source of medical advice. Historical performance does not guarantee future accuracy, and a low predicted risk does not rule out elevated pollution.
 
-FSI describes engineered fire influence, and input completeness describes data availability. Neither establishes personal exposure or forecast certainty.
-
-Consult official air-quality information for current conditions and health-related decisions.
+Consult official air-quality information for current conditions.
