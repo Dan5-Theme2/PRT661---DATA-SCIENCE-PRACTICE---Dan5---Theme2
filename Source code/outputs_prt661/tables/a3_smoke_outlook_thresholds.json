@@ -1,0 +1,6 @@
+{
+  "fsi_low_median_nonzero": 26.84395553390204,
+  "fsi_high_80th_nonzero": 148.93213285882774,
+  "reliability_rule": "Limited <0.75; Moderate 0.75-<0.90; High >=0.90",
+  "decision_support_note": "Research support only, not official warning/medical advice"
+}
