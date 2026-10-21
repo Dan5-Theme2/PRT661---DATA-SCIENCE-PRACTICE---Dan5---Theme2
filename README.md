@@ -276,6 +276,47 @@ PRT661---DATA-SCIENCE-PRACTICE---Dan5---Theme2/
 
 This structure shows the main folders and subfolders only.
 
+## Separate Code Sets: AWS and Local
+
+The repository contains two separate sets of notebooks:
+
+| Code set | Location | Purpose |
+|---|---|---|
+| AWS-integrated | `AWS/AWS_integrations/` | Reads shared inputs from Amazon S3 and publishes outputs to S3 |
+| Local | `Source code/` | Reads inputs from local folders and saves outputs on the computer |
+
+### Primary Workflow — AWS
+
+Use the notebooks in `AWS/AWS_integrations/` for the primary AWS-integrated workflow.
+
+These notebooks can run locally in VS Code while accessing AWS storage. They do not automatically execute on AWS compute infrastructure.
+
+### Local Fallback
+
+Use the notebooks in `Source code/` when the required datasets, checkpoints, feature manifests and model outputs are already available on the computer.
+
+Check each notebook's configured paths before execution. The local notebooks do not automatically download inputs from S3 or publish results to AWS.
+
+### Version Consistency and Dashboard Inputs
+
+The AWS and local code sets are separate implementations and are not automatically synchronised. Changes to one set must be reviewed separately before being applied to the other.
+
+Use matching data and model versions. Identical results across both workflows have not been verified.
+
+The Streamlit applications in `Dashboard/` read local files. To display AWS-generated results, download the matching outputs and place them in the locations expected by the dashboard.
+
+## AWS Credentials and Access Requirements
+
+Running and verifying the AWS-integrated workflow requires valid AWS credentials and appropriate permissions.
+
+Access to this GitHub repository does not grant access to the project's AWS resources. Reviewers need an authorised AWS account or role to read S3 inputs, execute AWS-dependent code and verify uploaded outputs. Publishing outputs requires write permissions. Glue and Athena checks require additional service permissions.
+
+Authenticate using the team's approved login method before running AWS-dependent notebooks. Request access from the team's AWS administrator if required.
+
+Never include passwords, access keys, secret keys or session tokens in the repository.
+
+The local workflow does not require AWS credentials once all required input files are available on the computer. Downloading those files from private S3 storage still requires authorised access.
+
 ## Running the Project
 
 ### Primary Workflow — AWS Integration
