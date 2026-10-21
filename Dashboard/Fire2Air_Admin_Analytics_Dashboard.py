@@ -2,8 +2,6 @@ from pathlib import Path
 from datetime import datetime
 import json
 import base64
-import os
-import hashlib
 
 import numpy as np
 import pandas as pd
@@ -22,7 +20,7 @@ st.set_page_config(
     page_title="Fire2Air Darwin | Admin Analytics Dashboard",
     page_icon="🔥",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ============================================================
@@ -30,27 +28,58 @@ st.set_page_config(
 # ============================================================
 APP_DIR = Path(__file__).resolve().parent
 REPO_ROOT = APP_DIR.parent
-default_export = Path(os.environ.get("FIRE2AIR_DATA_DIR", APP_DIR)).expanduser()
-default_tables = REPO_ROOT / "Source code" / "outputs_prt661" / "tables"
-if not default_tables.is_dir():
-    default_tables = default_export / "tables" if (default_export / "tables").is_dir() else default_export
-default_regression = Path.home() / "Downloads" / "Fire2Air_Model2" / "outputs_prt661_a3" / "tables"
-if not default_regression.is_dir() or (default_tables / "a3_model2_final_2024_metrics.csv").is_file():
-    default_regression = default_tables
-with st.sidebar:
-    st.markdown("## Fire2Air Analytics")
-    st.caption("Historical research workspace")
-    st.markdown("### Data folders")
-    DATA_ROOT = Path(st.text_input("Dashboard data folder", str(default_export))).expanduser().resolve()
-    TABLE_ROOT = Path(st.text_input("Model 1 & 3 result tables", str(default_tables))).expanduser().resolve()
-    REGRESSION_ROOT = Path(st.text_input("Model 2 result tables", str(default_regression))).expanduser().resolve()
-    st.caption("Select matching outputs from the same preprocessing version. Changing a folder reloads the files.")
-SEARCH_DIRS = [DATA_ROOT, DATA_ROOT / "tables", DATA_ROOT / "processed", DATA_ROOT / "metadata"]
-FIRMS_DATA_DIR = Path(os.environ.get("FIRE2AIR_FIRMS_DIR", str(REPO_ROOT / "Source code" / "Datasets"))).expanduser()
-ACTIVE_FIRMS_DATA_DIR = FIRMS_DATA_DIR
-LOGO_PATH = next((p for p in [APP_DIR / "Fire2Air_logo.png", REPO_ROOT / "Dashboard" / "Fire2Air_logo.png"] if p.is_file()), None)
-LOADED_FILES = {}
-LOAD_ISSUES = []
+LOCAL_REPO_ROOT = Path(
+    r"C:\Users\dlihi\Documents\PRT661 Data Science\Assessment 2\PRT661---DATA-SCIENCE-PRACTICE---Dan5---Theme2"
+)
+
+FIRMS_DATA_DIR = REPO_ROOT / "Datasets"
+LOCAL_FIRMS_DATA_DIR = LOCAL_REPO_ROOT / "Datasets"
+ACTIVE_FIRMS_DATA_DIR = (
+    FIRMS_DATA_DIR if FIRMS_DATA_DIR.exists()
+    else LOCAL_FIRMS_DATA_DIR if LOCAL_FIRMS_DATA_DIR.exists()
+    else FIRMS_DATA_DIR
+)
+
+LOGO_CANDIDATES = [
+    APP_DIR / "Fire2Air_logo.png",
+    REPO_ROOT / "Dashboard" / "Fire2Air_logo.png",
+    LOCAL_REPO_ROOT / "Dashboard" / "Fire2Air_logo.png",
+]
+LOGO_PATH = next((p for p in LOGO_CANDIDATES if p.exists()), None)
+
+SEARCH_DIRS = [
+    APP_DIR,
+    APP_DIR / "outputs_prt661_a3",
+    APP_DIR / "outputs_prt661_a3" / "tables",
+    APP_DIR / "outputs_prt661_a3" / "processed",
+    APP_DIR / "outputs_prt661",
+    APP_DIR / "outputs_prt661" / "tables",
+    APP_DIR / "outputs_prt661" / "processed",
+
+    REPO_ROOT / "Dashboard",
+    REPO_ROOT / "outputs_prt661_a3",
+    REPO_ROOT / "outputs_prt661_a3" / "tables",
+    REPO_ROOT / "outputs_prt661_a3" / "processed",
+    REPO_ROOT / "Source code",
+    REPO_ROOT / "Source code" / "outputs_prt661_a3",
+    REPO_ROOT / "Source code" / "outputs_prt661_a3" / "tables",
+    REPO_ROOT / "Source code" / "outputs_prt661_a3" / "processed",
+    REPO_ROOT / "Source code" / "outputs_prt661" / "processed",
+    REPO_ROOT / "Source code" / "outputs_prt661" / "tables",
+    REPO_ROOT / "Source code" / "outputs_prt661" / "metadata",
+
+    LOCAL_REPO_ROOT / "Dashboard",
+    LOCAL_REPO_ROOT / "outputs_prt661_a3",
+    LOCAL_REPO_ROOT / "outputs_prt661_a3" / "tables",
+    LOCAL_REPO_ROOT / "outputs_prt661_a3" / "processed",
+    LOCAL_REPO_ROOT / "Source code",
+    LOCAL_REPO_ROOT / "Source code" / "outputs_prt661_a3",
+    LOCAL_REPO_ROOT / "Source code" / "outputs_prt661_a3" / "tables",
+    LOCAL_REPO_ROOT / "Source code" / "outputs_prt661_a3" / "processed",
+    LOCAL_REPO_ROOT / "Source code" / "outputs_prt661" / "processed",
+    LOCAL_REPO_ROOT / "Source code" / "outputs_prt661" / "tables",
+    LOCAL_REPO_ROOT / "Source code" / "outputs_prt661" / "metadata",
+]
 
 PM25_THRESHOLD = 25.0
 
@@ -76,20 +105,16 @@ DARWIN_LOCATIONS = {
 
 
 def find_file(filename):
-    if filename.startswith(("a3_model2_", "a4_model2_")):
-        folders = [REGRESSION_ROOT]
-    elif filename.startswith(("a3_model1_", "a4_model1_", "a3_model3_", "a4_model3_")):
-        folders = [TABLE_ROOT]
-    else:
-        folders = SEARCH_DIRS
-    matches = list(dict.fromkeys((folder / filename).resolve()
-                   for folder in folders if (folder / filename).is_file()))
-    if len(matches) > 1:
-        hashes = {hashlib.sha256(p.read_bytes()).hexdigest() for p in matches}
-        if len(hashes) > 1:
-            LOAD_ISSUES.append(f"Conflicting copies of {filename}; select one export using FIRE2AIR_DATA_DIR.")
-            return None
-    return matches[0] if matches else None
+    for folder in SEARCH_DIRS:
+        p = folder / filename
+        if p.exists():
+            return p
+    for root in [REPO_ROOT, LOCAL_REPO_ROOT]:
+        if root.exists():
+            matches = list(root.rglob(filename))
+            if matches:
+                return matches[0]
+    return None
 
 
 def read_csv_safe(filename, parse_dates=None):
@@ -97,15 +122,13 @@ def read_csv_safe(filename, parse_dates=None):
     if path is None:
         return pd.DataFrame()
     try:
+        return pd.read_csv(path, parse_dates=parse_dates)
+    except Exception:
         df = pd.read_csv(path)
-        for col in parse_dates or []:
-            if col in df:
-                df[col] = pd.to_datetime(df[col], errors="coerce")
-        LOADED_FILES[filename] = path
+        for c in parse_dates or []:
+            if c in df.columns:
+                df[c] = pd.to_datetime(df[c], errors="coerce")
         return df
-    except Exception as exc:
-        LOAD_ISSUES.append(f"Could not read {filename}: {exc}")
-        return pd.DataFrame()
 
 
 def read_json_safe(filename):
@@ -113,74 +136,9 @@ def read_json_safe(filename):
     if path is None:
         return {}
     try:
-        result = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(result, dict):
-            raise ValueError("Expected a JSON object")
-        LOADED_FILES[filename] = path
-        return result
-    except Exception as exc:
-        LOAD_ISSUES.append(f"Could not read {filename}: {exc}")
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
         return {}
-
-
-def saved_threshold(metrics):
-    if metrics.empty:
-        return np.nan
-    for col in ["Threshold", "threshold", "Selected_Threshold", "selected_threshold",
-                "Decision_Threshold", "decision_threshold", "Best_Threshold"]:
-        if col in metrics:
-            values = pd.to_numeric(metrics[col], errors="coerce").dropna().unique()
-            if len(values) == 1 and 0 <= values[0] <= 1:
-                return float(values[0])
-    return np.nan
-
-
-def duration_diagnostics(predictions, manifest, metrics):
-    """Calculate supplementary metrics only when the saved pooled errors agree."""
-    target = manifest.get("targets", {}).get("count")
-    actual = next((c for c in [target, "target_hours_next_day", "target_hours_pm25_ge_25_next_day",
-                                "actual", "observed", "y_true"] if c and c in predictions), None)
-    predicted = "bounded_prediction_0_24"
-    if not actual or predicted not in predictions or "target_date" not in predictions:
-        return {}, "Duration prediction file or recognised target columns unavailable."
-    data = predictions.copy()
-    dates = pd.to_datetime(data["target_date"], errors="coerce")
-    data = data.loc[dates.dt.year.eq(2024)].copy()
-    if data.empty:
-        return {}, "No 2024 duration prediction records available."
-    keys = [c for c in ["station", "date", "target_date"] if c in data]
-    if len(keys) != 3 or data.duplicated(keys).any():
-        return {}, "Duration predictions require unique station/observation/target-date records."
-    y = pd.to_numeric(data[actual], errors="coerce").to_numpy(dtype=float)
-    pred = pd.to_numeric(data[predicted], errors="coerce").to_numpy(dtype=float)
-    if not (np.isfinite(y).all() and np.isfinite(pred).all()
-            and ((y >= 0) & (y <= 24)).all() and ((pred >= 0) & (pred <= 24)).all()):
-        return {}, "Duration predictions contain missing, invalid or out-of-range values."
-    errors = pred-y
-    mae = float(np.mean(np.abs(errors)))
-    rmse = float(np.sqrt(np.mean(errors**2)))
-    if metrics.empty:
-        return {}, "Saved duration metrics are required to check the prediction cohort."
-    row = metrics.iloc[0]
-    for name, calculated in [("MAE",mae),("RMSE",rmse)]:
-        saved = pd.to_numeric(row.get(name), errors="coerce")
-        if pd.isna(saved) or not np.isclose(saved,calculated,rtol=0,atol=0.0001):
-            return {}, "Duration predictions do not agree with the saved pooled metrics; supplementary metrics withheld."
-    return {"Bias_PredMinusObs": float(errors.mean()),
-            "Within_3h": float(np.mean(np.abs(errors)<=3)), "Rows":len(data)}, "Calculated from saved 2024 bounded duration predictions; pooled MAE/RMSE agree with the metrics file."
-
-
-def darwin_dates(frame):
-    if "date_darwin" in frame:
-        return pd.to_datetime(frame["date_darwin"], errors="coerce").dt.normalize()
-    if not {"acq_date", "acq_time"}.issubset(frame.columns):
-        return pd.Series(pd.NaT, index=frame.index, dtype="datetime64[ns]")
-    times = pd.to_numeric(frame["acq_time"], errors="coerce")
-    valid = times.notna() & times.eq(times.round()) & times.between(0,2359) & times.mod(100).lt(60)
-    text = times.where(valid).astype("Int64").astype("string").str.zfill(4)
-    stamp = pd.to_datetime(frame["acq_date"].astype("string") + " " + text,
-                           format="%Y-%m-%d %H%M", errors="coerce", utc=True)
-    return stamp.dt.tz_convert("Australia/Darwin").dt.tz_localize(None).dt.normalize()
 
 
 def image_data_uri(path):
@@ -193,6 +151,7 @@ def image_data_uri(path):
     return f"data:image/{mime};base64,{encoded}"
 
 
+@st.cache_data(show_spinner=False)
 def load_data():
     return {
         "manifest": read_json_safe("Fire2Air_feature_manifest_A3.json"),
@@ -211,51 +170,12 @@ def load_data():
         "reg_predictions": read_csv_safe(
             "a3_model2_2024_predictions.csv", ["date", "target_date"]
         ),
-        "class_predictions": read_csv_safe("a3_model1_2024_predictions.csv", ["date", "target_date"]),
-        "count_predictions": read_csv_safe("a3_model3_2024_predictions.csv", ["date", "target_date"]),
-        "duration_strata": read_csv_safe("a3_model3_2024_duration_strata.csv"),
-        "prolonged_cases": read_csv_safe("a4_model3_prolonged_event_cases.csv"),
-        "duration_baseline": read_csv_safe("a4_model3_duration_baseline_comparison.csv"),
         "permutation": read_csv_safe("a3_model3_count_permutation_importance.csv"),
         "shap": read_csv_safe("a3_model3_shap_importance.csv"),
     }
 
 
-if st.button("Refresh input files"):
-    st.cache_data.clear()
 DATA = load_data()
-with st.sidebar:
-    required_metrics = {
-        "Classification": (TABLE_ROOT, "a3_model1_final_2024_metrics.csv"),
-        "Regression": (REGRESSION_ROOT, "a3_model2_final_2024_metrics.csv"),
-        "Duration": (TABLE_ROOT, "a3_model3_final_2024_metrics.csv"),
-    }
-    st.markdown("### Evaluation files")
-    for label, (folder, name) in required_metrics.items():
-        st.caption(("✓ " if (folder/name).is_file() else "○ ") + label)
-    with st.expander("Missing file names"):
-        for label, (folder, name) in required_metrics.items():
-            if not (folder/name).is_file():
-                st.code(str(folder/name), language=None)
-
-for issue in LOAD_ISSUES:
-    st.error(issue)
-if LOAD_ISSUES:
-    st.stop()
-CLASS_THRESHOLD = saved_threshold(DATA["class_metrics"])
-status_paths = list(dict.fromkeys(p for p in [
-    DATA_ROOT / "latest_preprocessing_attempt.json",
-    DATA_ROOT.parent / "latest_preprocessing_attempt.json"] if p.is_file()))
-for status_path in status_paths:
-    try:
-        state = json.loads(status_path.read_text(encoding="utf-8"))
-        state_name = str(state.get("status", "unknown")).lower()
-        if state_name not in {"success", "succeeded", "successful", "completed"}:
-            st.warning(f"Latest preprocessing attempt status: {state_name}. Displayed files may belong to an earlier run; they are not a successful refresh.")
-    except Exception as exc:
-        st.warning(f"Could not verify preprocessing attempt status: {exc}")
-
-
 if DATA["manifest"]:
     PM25_THRESHOLD = float(DATA["manifest"].get("threshold_pm25_ug_m3", 25.0))
 
@@ -334,11 +254,12 @@ def gauge(value, title, suffix="", max_value=100, threshold=None):
     return fig
 
 
+@st.cache_data(show_spinner=False)
 def load_fires_for_date(date_text):
     selected_date = pd.Timestamp(date_text).normalize()
     year_files = [
         p for p in ACTIVE_FIRMS_DATA_DIR.glob("fire_archive_SV-C2_*.csv")
-        if any(str(y) in p.name for y in [selected_date.year, (selected_date-pd.Timedelta(days=1)).year])
+        if str(selected_date.year) in p.name
     ]
     parts = []
     for file_path in year_files:
@@ -346,7 +267,7 @@ def load_fires_for_date(date_text):
             for chunk in pd.read_csv(file_path, chunksize=250_000):
                 if not {"latitude", "longitude", "acq_date"}.issubset(chunk.columns):
                     continue
-                dates = darwin_dates(chunk)
+                dates = pd.to_datetime(chunk["acq_date"], errors="coerce").dt.normalize()
                 mask = dates.eq(selected_date)
                 if not mask.any():
                     continue
@@ -365,7 +286,7 @@ def load_fires_for_date(date_text):
                 df = pd.read_csv(compact)
                 date_col = next((c for c in ["date_darwin", "acq_date", "date"] if c in df.columns), None)
                 if date_col:
-                    d = darwin_dates(df) if date_col != "date" else pd.to_datetime(df[date_col], errors="coerce").dt.normalize()
+                    d = pd.to_datetime(df[date_col], errors="coerce").dt.normalize()
                     df = df.loc[d.eq(selected_date)].copy()
                     if not df.empty:
                         parts.append(df)
@@ -378,16 +299,16 @@ def load_fires_for_date(date_text):
     fire = pd.concat(parts, ignore_index=True)
     fire["latitude"] = pd.to_numeric(fire["latitude"], errors="coerce")
     fire["longitude"] = pd.to_numeric(fire["longitude"], errors="coerce")
-    fire["frp"] = pd.to_numeric(fire.get("frp", pd.Series(np.nan, index=fire.index)), errors="coerce")
+    fire["frp"] = pd.to_numeric(fire.get("frp"), errors="coerce")
     if "type" in fire.columns:
         fire_type = pd.to_numeric(fire["type"], errors="coerce")
-        fire = fire.loc[fire_type.eq(0)].copy()
+        fire = fire.loc[fire_type.isna() | fire_type.eq(0)].copy()
     fire = fire.dropna(subset=["latitude", "longitude"])
     fire = fire[
         fire["latitude"].between(-17.5, -7.5)
         & fire["longitude"].between(125.5, 136.5)
     ].copy()
-    return fire.drop_duplicates()
+    return fire
 
 
 # ============================================================
@@ -635,45 +556,11 @@ if outlook.empty:
     st.error("Missing Fire2Air_dashboard_ready_outlook_A3.csv. Run the integration workflow first.")
     st.stop()
 
-required = {"station", "date", "target_date", "elevated_pm25_probability",
-            "expected_daily_mean_pm25", "expected_elevated_hours"}
-missing = required.difference(outlook.columns)
-if missing:
-    st.error(f"Outlook is missing required columns: {sorted(missing)}")
-    st.stop()
-if outlook.duplicated(["station", "date", "target_date"]).any():
-    st.error("Duplicate station/date records in the outlook. Regenerate integration.")
-    st.stop()
-
-st.info("Historical forecasts — not live. Research prototype; low predicted probability does not rule out elevated pollution.")
-with st.expander("Loaded files and run provenance"):
-    st.caption(f"Configured export folder: {DATA_ROOT}")
-    st.dataframe(pd.DataFrame([{"File": n, "Path": str(p),
-        "SHA256": hashlib.sha256(p.read_bytes()).hexdigest()}
-        for n,p in LOADED_FILES.items()]), hide_index=True)
-    st.caption("File hashes identify loaded bytes; matching hashes require a trusted inventory to establish approval.")
-    run_id = DATA["manifest"].get("run_id", DATA["manifest"].get("preprocessing_run_id"))
-    st.write("Preprocessing run:", run_id or "Not recorded in the loaded manifest")
-    st.warning("A common run across all model outputs is not certified by filenames. Check the integration run records.")
-
 for df, cols in [(outlook,["date","target_date"]),(daily_air,["date"]),(model_ready,["date","target_date"])]:
     for col in cols:
         if not df.empty and col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
-if outlook[["date", "target_date"]].isna().any().any():
-    st.error("Invalid or missing outlook dates. Regenerate the integrated output.")
-    st.stop()
-if not (outlook["target_date"].dt.normalize() == outlook["date"].dt.normalize()+pd.Timedelta(days=1)).all():
-    st.error("Outlook contains records whose target date is not the next day.")
-    st.stop()
-for col, low, high in [("elevated_pm25_probability",0,1), ("expected_elevated_hours",0,24)]:
-    values = pd.to_numeric(outlook[col], errors="coerce")
-    if (values.notna() & ~values.between(low,high)).any():
-        st.error(f"Out-of-range values in {col}.")
-        st.stop()
-    outlook[col] = values
-outlook["expected_daily_mean_pm25"] = pd.to_numeric(outlook["expected_daily_mean_pm25"], errors="coerce")
 logo_uri = image_data_uri(LOGO_PATH)
 
 nav_header, nav_location, nav_date = st.columns([2.65, 2.10, 1.45], gap="small")
@@ -713,7 +600,7 @@ if station_outlook.empty:
     st.stop()
 available_dates = station_outlook["target_date"].dropna().dt.date.drop_duplicates().tolist()
 with nav_date:
-    selected_date = st.selectbox("📅 Forecast target date", available_dates, index=len(available_dates)-1)
+    selected_date = st.selectbox("📅 Analysis / outlook date", available_dates, index=len(available_dates)-1)
 selected_ts = pd.Timestamp(selected_date)
 row = station_outlook[station_outlook["target_date"].dt.date.eq(selected_date)].tail(1)
 if row.empty:
@@ -727,27 +614,109 @@ hours = first_available(r,["expected_elevated_hours","predicted_hours_ge_25"])
 fsi = first_available(r,["fsi_total","fire_smoke_influence_index"])
 nearest_fire = first_available(r,["nearest_upwind_fire_km","nearest_fire_km"])
 upwind_frp = first_available(r,["upwind_frp_sum","wind_aligned_frp","aligned_frp_sum"])
-reliability = str(r.get("input_data_completeness", r.get("input_reliability","Unknown")))
-influence = str(r.get("fire_smoke_influence","Unknown")) if pd.notna(fsi) else "Unknown"
-st.caption(f"Observation date: {predictor_date.date()} · Forecast target date: {selected_date}")
-issue_value = next((r.get(k) for k in ["forecast_issue_time", "forecast_issued_at", "issue_timestamp"] if pd.notna(r.get(k))), None)
-st.caption(f"Recorded forecast issue timestamp: {issue_value}" if issue_value is not None
-           else "Forecast issue timestamp: not recorded; this is a historical reconstruction.")
-if pd.isna(prob) or pd.isna(pred_pm) or pd.isna(hours):
-    st.warning("One or more model outputs are missing for this record. A complete combined forecast is unavailable.")
+reliability = str(r.get("input_reliability","Unknown"))
+influence = str(r.get("fire_smoke_influence","Unknown"))
 
 # ============================================================
-# SAVED EVALUATION FILES
+# MODEL 2 FALLBACK / VALIDATION DATA
 # ============================================================
-# Evaluation is displayed from saved files; no silent reconstruction on a smaller cohort.
+# Favour's Model 2 writes:
+#   outputs_prt661_a3/tables/a3_model2_final_2024_metrics.csv
+#   outputs_prt661_a3/tables/a3_model2_2024_predictions.csv
+# If these CSVs have not been copied into the dashboard repository yet,
+# reconstruct the same 2024 prediction table from the integrated dashboard
+# outlook + model-ready target so the admin view still has evaluation data.
+
+if DATA["reg_predictions"].empty:
+    if (
+        not outlook.empty
+        and not model_ready.empty
+        and {"date", "target_date", "station", "expected_daily_mean_pm25"}.issubset(outlook.columns)
+        and {"date", "target_date", "station", "target_pm25_next_day"}.issubset(model_ready.columns)
+    ):
+        reg_fallback = (
+            outlook[
+                ["date", "target_date", "station", "expected_daily_mean_pm25"]
+            ]
+            .merge(
+                model_ready[
+                    ["date", "target_date", "station", "target_pm25_next_day"]
+                ],
+                on=["date", "target_date", "station"],
+                how="inner",
+                validate="one_to_one",
+            )
+            .rename(columns={"expected_daily_mean_pm25": "prediction"})
+        )
+        reg_fallback["residual_observed_minus_predicted"] = (
+            reg_fallback["target_pm25_next_day"] - reg_fallback["prediction"]
+        )
+        reg_fallback["underprediction"] = (
+            reg_fallback["prediction"] < reg_fallback["target_pm25_next_day"]
+        ).astype(int)
+        reg_fallback["elevated_actual"] = (
+            reg_fallback["target_pm25_next_day"] >= PM25_THRESHOLD
+        ).astype(int)
+        DATA["reg_predictions"] = reg_fallback
+
+if DATA["reg_metrics"].empty and not DATA["reg_predictions"].empty:
+    rp_for_metrics = DATA["reg_predictions"].dropna(
+        subset=["target_pm25_next_day", "prediction"]
+    ).copy()
+
+    if "target_date" in rp_for_metrics.columns:
+        rp_for_metrics["target_date"] = pd.to_datetime(
+            rp_for_metrics["target_date"], errors="coerce"
+        )
+        rp_for_metrics = rp_for_metrics[
+            rp_for_metrics["target_date"].dt.year.eq(2024)
+        ]
+
+    if not rp_for_metrics.empty:
+        y = rp_for_metrics["target_pm25_next_day"].to_numpy(dtype=float)
+        p = rp_for_metrics["prediction"].to_numpy(dtype=float)
+
+        mae = float(np.mean(np.abs(y - p)))
+        rmse = float(np.sqrt(np.mean((y - p) ** 2)))
+        denom = float(np.sum((y - np.mean(y)) ** 2))
+        r2 = float(1 - np.sum((y - p) ** 2) / denom) if denom > 0 else np.nan
+
+        elevated_mask = y >= PM25_THRESHOLD
+
+        DATA["reg_metrics"] = pd.DataFrame([{
+            "Model": "Model 2 selected regressor",
+            "Scope": "All 2024 model rows",
+            "MAE": mae,
+            "RMSE": rmse,
+            "R2": r2,
+            "Bias_PredMinusObs": float(np.mean(p - y)),
+            "Underprediction_Rate": float(np.mean(p < y)),
+            "Elevated_Rows": int(elevated_mask.sum()),
+            "Elevated_MAE": (
+                float(np.mean(np.abs(y[elevated_mask] - p[elevated_mask])))
+                if elevated_mask.any() else np.nan
+            ),
+            "Elevated_RMSE": (
+                float(np.sqrt(np.mean((y[elevated_mask] - p[elevated_mask]) ** 2)))
+                if elevated_mask.any() else np.nan
+            ),
+            "Elevated_Bias_PredMinusObs": (
+                float(np.mean(p[elevated_mask] - y[elevated_mask]))
+                if elevated_mask.any() else np.nan
+            ),
+            "Elevated_Underprediction_Rate": (
+                float(np.mean(p[elevated_mask] < y[elevated_mask]))
+                if elevated_mask.any() else np.nan
+            ),
+        }])
 
 # ============================================================
 # SYSTEM OVERVIEW
 # ============================================================
 st.markdown(f'<div class="section-band"><span>🧭 System Overview</span><span style="font-size:.75rem;color:#6d8094">Nearest station: {station_name} · {station_distance:.1f} km</span></div>', unsafe_allow_html=True)
 c1,c2,c3,c4,c5 = st.columns(5, gap="small")
-start_year = int(model_ready["date"].dt.year.min()) if not model_ready.empty and "date" in model_ready and model_ready["date"].notna().any() else 2018
-end_year = int(model_ready["date"].dt.year.max()) if not model_ready.empty and "date" in model_ready and model_ready["date"].notna().any() else 2024
+start_year = int(model_ready["date"].dt.year.min()) if not model_ready.empty else 2018
+end_year = int(model_ready["date"].dt.year.max()) if not model_ready.empty else 2024
 predictor_count = len(DATA["manifest"].get("features",[])) if DATA["manifest"] else max(0,model_ready.shape[1]-5) if not model_ready.empty else 0
 cards = [
     (c1,"📍 Monitoring Stations",str(len(STATION_COORDINATES)),"Greater Darwin monitoring network","kpi-blue"),
@@ -763,17 +732,11 @@ for col,label,value,sub,css in cards:
 # ============================================================
 # TOMORROW SMOKE OUTLOOK
 # ============================================================
-st.markdown(f'<div class="section-band"><span>☁️ Historical Next-Day Smoke Outlook</span><span style="font-size:.75rem;color:#6d8094">{selected_ts.strftime("%a %d %b %Y")}</span></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="section-band"><span>☁️ Tomorrow Smoke Outlook</span><span style="font-size:.75rem;color:#6d8094">{selected_ts.strftime("%a %d %b %Y")}</span></div>', unsafe_allow_html=True)
 g1,g2,g3,g4 = st.columns([1,1,1,1.05], gap="small")
 with g1:
-    st.plotly_chart(gauge(prob*100 if pd.notna(prob) else np.nan,"Model 1 – Classification","%",100,100*CLASS_THRESHOLD if pd.notna(CLASS_THRESHOLD) else None), width="stretch", config={"displayModeBar":False})
-    st.caption("Estimated probability of an elevated next-day daily mean")
-    if pd.notna(CLASS_THRESHOLD):
-        st.caption(f"Saved decision threshold: {CLASS_THRESHOLD:.2f}")
-        if pd.notna(prob):
-            st.caption("Model decision: " + ("Elevated" if prob >= CLASS_THRESHOLD else "Not elevated"))
-    else:
-        st.caption("Decision threshold unavailable in saved metrics; classification decision not inferred.")
+    st.plotly_chart(gauge(prob*100 if pd.notna(prob) else np.nan,"Model 1 – Classification","%",100,50), width="stretch", config={"displayModeBar":False})
+    st.caption(f"Elevated PM2.5 probability · **{risk_label(prob)} risk**")
 with g2:
     pm_max = max(60,float(pred_pm)*1.35) if pd.notna(pred_pm) else 60
     st.plotly_chart(gauge(pred_pm,"Model 2 – Regression"," µg/m³",pm_max,PM25_THRESHOLD), width="stretch", config={"displayModeBar":False})
@@ -788,371 +751,303 @@ with g4:
         st.metric("📍 Nearest Upwind Fire", f"{safe_num(nearest_fire)} km")
     with b:
         st.metric("🌬️ Upwind / Aligned FRP", f"{safe_num(upwind_frp)} MW")
-        st.metric("🛡️ Input Data Completeness", reliability)
+        st.metric("🛡️ Input Reliability", reliability)
 
 # ============================================================
 # AIR QUALITY MONITORING
 # ============================================================
-air_tab, fire_tab, performance_tab, events_tab, diagnostics_tab = st.tabs([
-    "Air quality", "Fire context", "Model performance", "Elevated events", "Diagnostics & inputs"])
+st.markdown(
+    f'<div class="section-band"><span>📊 Air Quality Monitoring ({station_name})</span>'
+    '<span style="font-size:.75rem;color:#6d8094">PM2.5 trends · exceedances · station comparison</span></div>',
+    unsafe_allow_html=True,
+)
 
-with air_tab:
-    st.markdown(
-        f'<div class="section-band"><span>📊 Air Quality Monitoring ({station_name})</span>'
-        '<span style="font-size:.75rem;color:#6d8094">PM2.5 trends · exceedances · station comparison</span></div>',
-        unsafe_allow_html=True,
-    )
+# All three widgets deliberately use the same Plotly height and internal margins.
+AQ_CHART_HEIGHT = 310
+aq1, aq2, aq3 = st.columns([1.75, 1.00, 1.05], gap="small")
 
-    # All three widgets deliberately use the same Plotly height and internal margins.
-    AQ_CHART_HEIGHT = 310
-    aq1, aq2, aq3 = st.columns([1.75, 1.00, 1.05], gap="small")
+station_air = (
+    daily_air[daily_air["station"].astype(str).eq(station_name)].copy()
+    if not daily_air.empty and "station" in daily_air.columns
+    else pd.DataFrame()
+)
+y_col = next(
+    (c for c in ["pm25_mean", "pm2_5_mean", "pm25"] if c in station_air.columns),
+    None,
+)
 
-    station_air = (
-        daily_air[daily_air["station"].astype(str).eq(station_name)].copy()
-        if not daily_air.empty and "station" in daily_air.columns
-        else pd.DataFrame()
-    )
-    y_col = next(
-        (c for c in ["pm25_mean", "pm2_5_mean", "pm25"] if c in station_air.columns),
+with aq1:
+    if not station_air.empty and y_col:
+        start = max(station_air["date"].min(), selected_ts - pd.Timedelta(days=365))
+        period = station_air[station_air["date"].between(start, selected_ts)]
+
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=period["date"],
+                y=period[y_col],
+                mode="lines",
+                name="Daily mean PM2.5",
+                line=dict(color="#168ee2", width=2.2),
+            )
+        )
+        fig.add_hline(
+            y=PM25_THRESHOLD,
+            line_dash="dash",
+            line_color="#e6403a",
+            annotation_text=f"Threshold {PM25_THRESHOLD:g}",
+        )
+        fig.update_layout(
+            height=AQ_CHART_HEIGHT,
+            title="PM2.5 Time Series",
+            margin=dict(l=28, r=14, t=46, b=30),
+            yaxis_title="PM2.5 (µg/m³)",
+            xaxis_title=None,
+            legend=dict(orientation="h", y=1.10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="white",
+        )
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    else:
+        st.info("Daily PM2.5 data not available.")
+
+with aq2:
+    if not station_air.empty and y_col:
+        year_df = station_air[
+            station_air["date"].dt.year.eq(selected_ts.year)
+        ].copy()
+
+        exceed = int((year_df[y_col] >= PM25_THRESHOLD).sum())
+        monthly = (
+            year_df.assign(month=year_df["date"].dt.month)
+            .groupby("month")[y_col]
+            .apply(lambda s: int((s >= PM25_THRESHOLD).sum()))
+            .reindex(range(1, 13), fill_value=0)
+        )
+
+        fig = go.Figure(
+            go.Bar(
+                x=list(range(1, 13)),
+                y=monthly.values,
+                marker_color="#ef4b46",
+            )
+        )
+        fig.add_annotation(
+            x=.03,
+            y=.96,
+            xref="paper",
+            yref="paper",
+            text=f"<b>{exceed} days</b><br><span style='font-size:11px'>above {PM25_THRESHOLD:g} µg/m³</span>",
+            showarrow=False,
+            align="left",
+            bgcolor="rgba(255,255,255,.86)",
+            bordercolor="#e3e3e3",
+            borderpad=6,
+        )
+        fig.update_layout(
+            height=AQ_CHART_HEIGHT,
+            title=f"PM2.5 Exceedance Days ({selected_ts.year})",
+            margin=dict(l=28, r=14, t=46, b=30),
+            xaxis_title="Month",
+            yaxis_title="Days",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="white",
+        )
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    else:
+        st.info("Exceedance data not available.")
+
+with aq3:
+    all_y = next(
+        (c for c in ["pm25_mean", "pm2_5_mean", "pm25"] if c in daily_air.columns),
         None,
-    )
+    ) if not daily_air.empty else None
 
-    with aq1:
-        if not station_air.empty and y_col:
-            start = max(station_air["date"].min(), selected_ts - pd.Timedelta(days=365))
-            period = station_air[station_air["date"].between(start, selected_ts)]
+    if not daily_air.empty and "station" in daily_air.columns and all_y:
+        comp = (
+            daily_air[daily_air["date"].dt.year.eq(selected_ts.year)]
+            .groupby("station", as_index=False)[all_y]
+            .mean()
+            .sort_values(all_y)
+        )
 
-            fig = go.Figure()
-            fig.add_trace(
-                go.Scatter(
-                    x=period["date"],
-                    y=period[y_col],
-                    mode="lines",
-                    name="Daily mean PM2.5",
-                    line=dict(color="#168ee2", width=2.2),
-                )
-            )
-            fig.add_hline(
-                y=PM25_THRESHOLD,
-                line_dash="dash",
-                line_color="#e6403a",
-                annotation_text=f"Threshold {PM25_THRESHOLD:g}",
-            )
-            fig.update_layout(
-                height=AQ_CHART_HEIGHT,
-                title="PM2.5 Time Series",
-                margin=dict(l=28, r=14, t=46, b=30),
-                yaxis_title="PM2.5 (µg/m³)",
-                xaxis_title=None,
-                legend=dict(orientation="h", y=1.10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="white",
-            )
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        fig = px.bar(
+            comp,
+            x=all_y,
+            y="station",
+            orientation="h",
+            title=f"Station Comparison ({selected_ts.year})",
+            labels={all_y: "Mean PM2.5", "station": ""},
+        )
+        fig.update_traces(marker_color="#2f8ee5")
+        fig.update_layout(
+            height=AQ_CHART_HEIGHT,
+            margin=dict(l=28, r=14, t=46, b=30),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="white",
+        )
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    else:
+        st.info("Station comparison data not available.")
+
+# ============================================================
+# FIRE MAP + ANALYTICS
+# ============================================================
+st.markdown(f'<div class="section-band"><span>🔥 Fire Intelligence & FSI ({location_name})</span><span style="font-size:.75rem;color:#6d8094">Active fires · intensity · distance · fire-smoke relationships</span></div>', unsafe_allow_html=True)
+map_col,analytics_col=st.columns([1.3,1.25],gap="small")
+fires=load_fires_for_date(str(predictor_date.date()))
+with map_col:
+    st.markdown('<div class="section-title">🗺️ Active Fire Map</div>',unsafe_allow_html=True)
+    st.caption(f"Predictor date: {predictor_date.date()} · FIRMS detections loaded: {len(fires):,}")
+    if HAS_FOLIUM:
+        fmap=folium.Map(location=[lat,lon],zoom_start=8,tiles="OpenStreetMap",control_scale=True)
+        folium.Marker([lat,lon],tooltip=f"Admin location: {location_name}",popup=f"<b>{location_name}</b><br>Admin reference point",icon=folium.Icon(color="blue",icon="home")).add_to(fmap)
+        for name,(slat,slon) in STATION_COORDINATES.items():
+            folium.CircleMarker([slat,slon],radius=7,color="#0d74c8",fill=True,fill_opacity=.95,tooltip=f"Air quality station: {name}").add_to(fmap)
+        if not fires.empty:
+            fires=fires.copy()
+            fires["distance_to_admin_km"]=haversine_km(fires["latitude"].to_numpy(),fires["longitude"].to_numpy(),lat,lon)
+            fires=fires[fires["distance_to_admin_km"]<=500].copy()
+            def fire_intensity(frp):
+                if pd.isna(frp): return "Unknown","#6b7280",22
+                frp=float(frp)
+                if frp<10: return "Low","#f6b73c",24
+                if frp<50: return "Moderate","#f57c00",30
+                return "High","#d62828",38
+            for _,fr in fires.sort_values("frp",ascending=False,na_position="last").head(800).iterrows():
+                level,color,size=fire_intensity(fr.get("frp",np.nan))
+                frp_v=fr.get("frp",np.nan); dist=fr.get("distance_to_admin_km",np.nan)
+                html=f'<div style="width:{size}px;height:{size}px;border-radius:50%;background:{color};border:3px solid white;box-shadow:0 2px 7px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:{max(15,int(size*.6))}px">🔥</div>'
+                folium.Marker([float(fr["latitude"]),float(fr["longitude"])],icon=folium.DivIcon(html=html,icon_size=(size,size),icon_anchor=(size//2,size//2)),tooltip=f"🔥 {level} · {safe_num(frp_v)} MW · {safe_num(dist)} km from {location_name}",popup=f"<b>Active fire detection</b><br>Intensity: {level}<br>FRP: {safe_num(frp_v)} MW<br>Distance to admin: {safe_num(dist)} km").add_to(fmap)
+            legend='''<div style="position:fixed;bottom:28px;left:28px;z-index:9999;background:white;border:1px solid #d7e1ea;border-radius:10px;padding:9px 11px;font-size:12px;color:#153d70;box-shadow:0 2px 8px rgba(0,0,0,.15)"><b>🔥 Fire intensity (FRP)</b><br><span style="color:#f6b73c">●</span> Low &lt; 10 MW<br><span style="color:#f57c00">●</span> Moderate 10–49.9 MW<br><span style="color:#d62828">●</span> High ≥ 50 MW</div>'''
+            fmap.get_root().html.add_child(folium.Element(legend))
+        st_folium(fmap,height=520,width="stretch",returned_objects=[],key=f"admin_map_{location_name}_{selected_date}")
+    else:
+        st.info("Install folium and streamlit-folium for the interactive map.")
+with analytics_col:
+    a,b,c=st.columns(3)
+    fire_count=len(fires) if not fires.empty else 0
+    total_frp=float(fires["frp"].sum()) if not fires.empty and "frp" in fires.columns else np.nan
+    with a: st.metric("🔥 Fire Count",f"{fire_count:,}")
+    with b: st.metric("🔥 Total FRP",f"{safe_num(total_frp,'.0f')} MW")
+    with c: st.metric("🌫️ FSI",safe_num(fsi,".2f"),influence)
+    if not model_ready.empty:
+        fsi_col=next((c for c in ["fsi_total","fire_smoke_influence_index"] if c in model_ready.columns),None)
+        pm_col=next((c for c in ["target_pm25_next_day","pm25_mean","pm25"] if c in model_ready.columns),None)
+        if fsi_col and pm_col:
+            s=model_ready[[fsi_col,pm_col]].dropna()
+            if len(s)>2500: s=s.sample(2500,random_state=42)
+            fig=px.scatter(s,x=fsi_col,y=pm_col,title="FSI vs PM2.5",labels={fsi_col:"Fire Smoke Influence Index",pm_col:"PM2.5"})
+            fig.update_traces(marker=dict(size=6,opacity=.55,color="#ff7f2a")); fig.update_layout(height=205,margin=dict(l=20,r=10,t=40,b=24),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="white")
+            st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
+        aligned_col=next((c for c in ["upwind_frp_sum","wind_aligned_frp","aligned_frp_sum","frp_upwind"] if c in model_ready.columns),None)
+        if aligned_col and pm_col:
+            s=model_ready[[aligned_col,pm_col]].dropna()
+            if len(s)>2500: s=s.sample(2500,random_state=42)
+            fig=px.scatter(s,x=aligned_col,y=pm_col,title="Aligned / Upwind FRP vs PM2.5",labels={aligned_col:"Aligned / Upwind FRP",pm_col:"PM2.5"})
+            fig.update_traces(marker=dict(size=6,opacity=.55,color="#168ee2")); fig.update_layout(height=205,margin=dict(l=20,r=10,t=40,b=24),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="white")
+            st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
+
+# ============================================================
+# MODEL PERFORMANCE
+# ============================================================
+st.markdown('<div class="section-band"><span>🎯 Model Performance</span><span style="font-size:.75rem;color:#6d8094">Final test metrics where available</span></div>',unsafe_allow_html=True)
+mp1,mp2,mp3=st.columns(3,gap="small")
+with mp1:
+    st.markdown('<div class="section-title">Model 1 – Classification</div>',unsafe_allow_html=True)
+    df=DATA["class_metrics"]
+    if not df.empty:
+        rr=df.iloc[0]; a,b,c=st.columns(3); a.metric("Accuracy",safe_num(rr.get("Accuracy"),".3f")); b.metric("Recall",safe_num(rr.get("Recall"),".3f")); c.metric("F1",safe_num(rr.get("F1"),".3f")); a,b,c=st.columns(3); a.metric("Precision",safe_num(rr.get("Precision"),".3f")); b.metric("PR-AUC",safe_num(rr.get("PR_AUC"),".3f")); c.metric("ROC-AUC",safe_num(rr.get("ROC_AUC"),".3f"))
+    else: st.info("Model 1 metrics file not found.")
+with mp2:
+    st.markdown('<div class="section-title">Model 2 – Regression</div>', unsafe_allow_html=True)
+    df = DATA["reg_metrics"]
+
+    if not df.empty:
+        if "Scope" in df.columns and df["Scope"].astype(str).eq("All 2024 model rows").any():
+            rr = df[df["Scope"].astype(str).eq("All 2024 model rows")].iloc[0]
         else:
-            st.info("Daily PM2.5 data not available.")
+            rr = df.iloc[0]
 
-    with aq2:
-        if not station_air.empty and y_col:
-            year_df = station_air[
-                station_air["date"].dt.year.eq(selected_ts.year)
-            ].copy()
+        a, b, c = st.columns(3)
+        a.metric("RMSE", safe_num(first_available(rr, ["RMSE"]), ".2f"))
+        b.metric("MAE", safe_num(first_available(rr, ["MAE"]), ".2f"))
+        c.metric("R²", safe_num(first_available(rr, ["R2", "R_squared"]), ".3f"))
 
-            exceed = int((year_df[y_col] >= PM25_THRESHOLD).sum())
-            monthly = (
-                year_df.assign(month=year_df["date"].dt.month)
-                .groupby("month")[y_col]
-                .apply(lambda s: int((s >= PM25_THRESHOLD).sum()))
-                .reindex(range(1, 13), fill_value=0)
-            )
-
-            fig = go.Figure(
-                go.Bar(
-                    x=list(range(1, 13)),
-                    y=monthly.values,
-                    marker_color="#ef4b46",
-                )
-            )
-            fig.add_annotation(
-                x=.03,
-                y=.96,
-                xref="paper",
-                yref="paper",
-                text=f"<b>{exceed} days</b><br><span style='font-size:11px'>above {PM25_THRESHOLD:g} µg/m³</span>",
-                showarrow=False,
-                align="left",
-                bgcolor="rgba(255,255,255,.86)",
-                bordercolor="#e3e3e3",
-                borderpad=6,
-            )
-            fig.update_layout(
-                height=AQ_CHART_HEIGHT,
-                title=f"PM2.5 Exceedance Days ({selected_ts.year})",
-                margin=dict(l=28, r=14, t=46, b=30),
-                xaxis_title="Month",
-                yaxis_title="Days",
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="white",
-            )
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-        else:
-            st.info("Exceedance data not available.")
-
-    with aq3:
-        all_y = next(
-            (c for c in ["pm25_mean", "pm2_5_mean", "pm25"] if c in daily_air.columns),
-            None,
-        ) if not daily_air.empty else None
-
-        if not daily_air.empty and "station" in daily_air.columns and all_y:
-            comp = (
-                daily_air[daily_air["date"].dt.year.eq(selected_ts.year)]
-                .groupby("station", as_index=False)[all_y]
-                .mean()
-                .sort_values(all_y)
-            )
-
-            fig = px.bar(
-                comp,
-                x=all_y,
-                y="station",
-                orientation="h",
-                title=f"Station Comparison ({selected_ts.year})",
-                labels={all_y: "Mean PM2.5", "station": ""},
-            )
-            fig.update_traces(marker_color="#2f8ee5")
-            fig.update_layout(
-                height=AQ_CHART_HEIGHT,
-                margin=dict(l=28, r=14, t=46, b=30),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="white",
-            )
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-        else:
-            st.info("Station comparison data not available.")
-
-    # ============================================================
-    # FIRE MAP + ANALYTICS
-    # ============================================================
-
-with fire_tab:
-    st.markdown(f'<div class="section-band"><span>🔥 Fire Intelligence & FSI ({location_name})</span><span style="font-size:.75rem;color:#6d8094">Historical detections · intensity · distance · fire-smoke relationships</span></div>', unsafe_allow_html=True)
-    map_col,analytics_col=st.columns([1.3,1.25],gap="small")
-    fires=load_fires_for_date(str(predictor_date.date()))
-    with map_col:
-        st.markdown('<div class="section-title">🗺️ Historical Fire Detection Map</div>',unsafe_allow_html=True)
-        st.caption(f"Predictor date: {predictor_date.date()} · FIRMS detections loaded: {len(fires):,}")
-        st.caption("No loaded detections does not establish zero fires or complete satellite coverage. Map uses the observation day, not the full 48-hour feature window.")
-        if HAS_FOLIUM:
-            fmap=folium.Map(location=[lat,lon],zoom_start=8,tiles="OpenStreetMap",control_scale=True)
-            folium.Marker([lat,lon],tooltip=f"Admin location: {location_name}",popup=f"<b>{location_name}</b><br>Admin reference point",icon=folium.Icon(color="blue",icon="home")).add_to(fmap)
-            for name,(slat,slon) in STATION_COORDINATES.items():
-                folium.CircleMarker([slat,slon],radius=7,color="#0d74c8",fill=True,fill_opacity=.95,tooltip=f"Air quality station: {name}").add_to(fmap)
-            if not fires.empty:
-                fires=fires.copy()
-                fires["distance_to_admin_km"]=haversine_km(fires["latitude"].to_numpy(),fires["longitude"].to_numpy(),lat,lon)
-                fires=fires[fires["distance_to_admin_km"]<=500].copy()
-                def fire_intensity(frp):
-                    if pd.isna(frp): return "Unknown","#6b7280",22
-                    frp=float(frp)
-                    if frp<10: return "Low","#f6b73c",24
-                    if frp<50: return "Moderate","#f57c00",30
-                    return "High","#d62828",38
-                for _,fr in fires.sort_values("frp",ascending=False,na_position="last").head(800).iterrows():
-                    level,color,size=fire_intensity(fr.get("frp",np.nan))
-                    frp_v=fr.get("frp",np.nan); dist=fr.get("distance_to_admin_km",np.nan)
-                    html=f'<div style="width:{size}px;height:{size}px;border-radius:50%;background:{color};border:3px solid white;box-shadow:0 2px 7px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:{max(15,int(size*.6))}px">🔥</div>'
-                    folium.Marker([float(fr["latitude"]),float(fr["longitude"])],icon=folium.DivIcon(html=html,icon_size=(size,size),icon_anchor=(size//2,size//2)),tooltip=f"🔥 {level} · {safe_num(frp_v)} MW · {safe_num(dist)} km from {location_name}",popup=f"<b>Active fire detection</b><br>Intensity: {level}<br>FRP: {safe_num(frp_v)} MW<br>Distance to admin: {safe_num(dist)} km").add_to(fmap)
-                legend='''<div style="position:fixed;bottom:28px;left:28px;z-index:9999;background:white;border:1px solid #d7e1ea;border-radius:10px;padding:9px 11px;font-size:12px;color:#153d70;box-shadow:0 2px 8px rgba(0,0,0,.15)"><b>🔥 Fire intensity (FRP)</b><br><span style="color:#f6b73c">●</span> Low &lt; 10 MW<br><span style="color:#f57c00">●</span> Moderate 10–49.9 MW<br><span style="color:#d62828">●</span> High ≥ 50 MW</div>'''
-                fmap.get_root().html.add_child(folium.Element(legend))
-            st_folium(fmap,height=520,width="stretch",returned_objects=[],key=f"admin_map_{location_name}_{selected_date}")
-        else:
-            st.info("Install folium and streamlit-folium for the interactive map.")
-    with analytics_col:
-        a,b,c=st.columns(3)
-        fire_count=len(fires) if not fires.empty else 0
-        total_frp = float(fires["frp"].sum()) if not fires.empty and "frp" in fires and fires["frp"].notna().all() else np.nan
-        with a: st.metric("🔥 Fire Count",f"{fire_count:,}")
-        with b: st.metric("🔥 Total FRP",f"{safe_num(total_frp,'.0f')} MW")
-        with c: st.metric("🌫️ FSI",safe_num(fsi,".2f"),influence)
-        if not model_ready.empty:
-            fsi_col=next((c for c in ["fsi_total","fire_smoke_influence_index"] if c in model_ready.columns),None)
-            pm_col=next((c for c in ["target_pm25_next_day","pm25_mean","pm25"] if c in model_ready.columns),None)
-            if fsi_col and pm_col:
-                s=model_ready[[fsi_col,pm_col]].dropna()
-                if len(s)>2500: s=s.sample(2500,random_state=42)
-                fig=px.scatter(s,x=fsi_col,y=pm_col,title="FSI vs PM2.5",labels={fsi_col:"Fire Smoke Influence Index",pm_col:"PM2.5"})
-                fig.update_traces(marker=dict(size=6,opacity=.55,color="#ff7f2a")); fig.update_layout(height=205,margin=dict(l=20,r=10,t=40,b=24),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="white")
-                st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
-            aligned_col=next((c for c in ["upwind_frp_sum","wind_aligned_frp","aligned_frp_sum","frp_upwind"] if c in model_ready.columns),None)
-            if aligned_col and pm_col:
-                s=model_ready[[aligned_col,pm_col]].dropna()
-                if len(s)>2500: s=s.sample(2500,random_state=42)
-                fig=px.scatter(s,x=aligned_col,y=pm_col,title="Aligned / Upwind FRP vs PM2.5",labels={aligned_col:"Aligned / Upwind FRP",pm_col:"PM2.5"})
-                fig.update_traces(marker=dict(size=6,opacity=.55,color="#168ee2")); fig.update_layout(height=205,margin=dict(l=20,r=10,t=40,b=24),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="white")
-                st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
-
-    # ============================================================
-    # MODEL PERFORMANCE
-    # ============================================================
-
-with performance_tab:
-    st.markdown('<div class="section-band"><span>🎯 Model Performance</span><span style="font-size:.75rem;color:#6d8094">Final test metrics where available</span></div>',unsafe_allow_html=True)
-    mp1,mp2,mp3=st.columns(3,gap="small")
-    with mp1:
-        st.markdown('<div class="section-title">Model 1 – Classification</div>',unsafe_allow_html=True)
-        df=DATA["class_metrics"]
-        if not df.empty:
-            rr=df.iloc[0]; a,b,c=st.columns(3); a.metric("Accuracy",safe_num(rr.get("Accuracy"),".3f")); b.metric("Recall",safe_num(rr.get("Recall"),".3f")); c.metric("F1",safe_num(rr.get("F1"),".3f")); a,b,c=st.columns(3); a.metric("Precision",safe_num(rr.get("Precision"),".3f")); b.metric("PR-AUC",safe_num(rr.get("PR_AUC"),".3f")); c.metric("ROC-AUC",safe_num(rr.get("ROC_AUC"),".3f"))
-        else: st.info("Model 1 metrics file not found.")
-    with mp2:
-        st.markdown('<div class="section-title">Model 2 – Regression</div>', unsafe_allow_html=True)
-        df = DATA["reg_metrics"]
-
-        if not df.empty:
-            if "Scope" in df.columns and df["Scope"].astype(str).eq("All 2024 model rows").any():
-                rr = df[df["Scope"].astype(str).eq("All 2024 model rows")].iloc[0]
-            else:
-                rr = df.iloc[0]
-
-            a, b, c = st.columns(3)
-            a.metric("RMSE", safe_num(first_available(rr, ["RMSE"]), ".2f"))
-            b.metric("MAE", safe_num(first_available(rr, ["MAE"]), ".2f"))
-            c.metric("R²", safe_num(first_available(rr, ["R2", "R_squared"]), ".3f"))
-
-            a, b = st.columns(2)
-            a.metric(
-                "Bias",
-                safe_num(
-                    first_available(
-                        rr,
-                        ["Bias_PredMinusObs", "Bias", "bias"],
-                    ),
-                    ".2f",
+        a, b = st.columns(2)
+        a.metric(
+            "Bias",
+            safe_num(
+                first_available(
+                    rr,
+                    ["Bias_PredMinusObs", "Bias", "bias"],
                 ),
-            )
-            b.metric(
-                "Underprediction",
-                (
-                    f"{100 * float(first_available(rr, ['Underprediction_Rate', 'Underprediction'])):.1f}%"
-                    if pd.notna(first_available(rr, ["Underprediction_Rate", "Underprediction"]))
-                    else "—"
-                ),
-            )
+                ".2f",
+            ),
+        )
+        b.metric(
+            "Underprediction",
+            (
+                f"{100 * float(first_available(rr, ['Underprediction_Rate', 'Underprediction'])):.1f}%"
+                if pd.notna(first_available(rr, ["Underprediction_Rate", "Underprediction"]))
+                else "—"
+            ),
+        )
+    else:
+        st.info(
+            "Model 2 metrics are unavailable. Add "
+            "outputs_prt661_a3/tables/a3_model2_final_2024_metrics.csv."
+        )
+with mp3:
+    st.markdown('<div class="section-title">Model 3 – Count</div>',unsafe_allow_html=True)
+    df=DATA["count_metrics"]
+    if not df.empty:
+        rr=df.iloc[0]; a,b,c=st.columns(3); a.metric("RMSE",safe_num(first_available(rr,["RMSE"]),".2f")); b.metric("MAE",safe_num(first_available(rr,["MAE"]),".2f")); c.metric("R²",safe_num(first_available(rr,["R2","R_squared"]),".3f")); a,b=st.columns(2); a.metric("Within ±3 h",safe_num(first_available(rr,["Within_3h","Within_3_hours"]),".2f")); b.metric("Bias",safe_num(first_available(rr,["Bias"]),".2f"))
+    else: st.info("Model 3 metrics file not found.")
+
+# ============================================================
+# DIAGNOSTICS + EXPLAINABILITY + DATA QUALITY
+# ============================================================
+st.markdown('<div class="section-band"><span>🧪 Diagnostics, Explainability & Data Quality</span><span style="font-size:.75rem;color:#6d8094">Observed vs predicted · feature importance · completeness</span></div>',unsafe_allow_html=True)
+d1,d2,d3=st.columns([1.1,1.1,.9],gap="small")
+with d1:
+    rp=DATA["reg_predictions"]
+    if not rp.empty:
+        actual=next((c for c in ["target_pm25_next_day","actual","observed","y_true"] if c in rp.columns),None)
+        pred=next((c for c in ["predicted_pm25","prediction","predicted","y_pred"] if c in rp.columns),None)
+        if actual and pred:
+            fig=px.scatter(rp,x=pred,y=actual,title="Model 2: Observed vs Predicted",labels={pred:"Predicted PM2.5",actual:"Observed PM2.5"})
+            fig.update_traces(marker=dict(size=6,opacity=.55,color="#1c85e8")); vals=pd.concat([rp[actual],rp[pred]]).dropna()
+            if len(vals):
+                mn,mx=float(vals.min()),float(vals.max()); fig.add_shape(type="line",x0=mn,y0=mn,x1=mx,y1=mx,line=dict(color="#5f6d7a",dash="dash"))
+            fig.update_layout(height=310,margin=dict(l=24,r=12,t=44,b=28),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="white")
+            st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
+        else: st.info("Regression prediction columns were not recognised.")
+    else: st.info("Regression predictions file not found.")
+with d2:
+    imp=DATA["permutation"] if not DATA["permutation"].empty else DATA["shap"]
+    if not imp.empty:
+        fc=next((c for c in ["Feature","feature","variable"] if c in imp.columns),None)
+        vc=next((c for c in ["importance_mean","Importance","importance","Permutation_Importance","mean_importance","SHAP_Importance","mean_abs_shap"] if c in imp.columns),None)
+        if fc and vc:
+            top=imp[[fc,vc]].dropna().sort_values(vc,ascending=False).head(10).sort_values(vc)
+            fig=px.bar(top,x=vc,y=fc,orientation="h",title="Explainability – Top Feature Importance")
+            fig.update_traces(marker_color="#326fc4"); fig.update_layout(height=310,margin=dict(l=24,r=12,t=44,b=28),yaxis_title=None,xaxis_title="Importance",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="white")
+            st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
+        else: st.info("Explainability columns were not recognised.")
+    else: st.info("Permutation / SHAP importance file not found.")
+with d3:
+    st.markdown('<div class="section-title">Data Quality & Reliability</div>',unsafe_allow_html=True)
+    rows=[]
+    for name,df in {"NT EPA daily":daily_air,"Model-ready":model_ready,"Dashboard outlook":outlook,"FIRMS selected date":fires}.items():
+        if df is None or df.empty: completeness=0.0; status="Missing"
         else:
-            st.info(
-                f"Regression metrics are missing from {REGRESSION_ROOT}. "
-                "Choose the folder containing a3_model2_final_2024_metrics.csv in the sidebar."
-            )
-    with mp3:
-        st.markdown('<div class="section-title">Model 3 – Count</div>',unsafe_allow_html=True)
-        df=DATA["count_metrics"]
-        if not df.empty:
-            rr=df.iloc[0]; a,b,c=st.columns(3); a.metric("RMSE",safe_num(first_available(rr,["RMSE"]),".2f")); b.metric("MAE",safe_num(first_available(rr,["MAE"]),".2f")); c.metric("R²",safe_num(first_available(rr,["R2","R_squared"]),".3f")); a,b=st.columns(2); extra, diagnostic_note = duration_diagnostics(DATA["count_predictions"], DATA["manifest"], df)
-            within = first_available(rr,["Within_3h","Within_3_hours"])
-            bias = first_available(rr,["Bias_PredMinusObs","Bias_hours","Bias","bias"])
-            if pd.isna(within): within = extra.get("Within_3h", np.nan)
-            if pd.isna(bias): bias = extra.get("Bias_PredMinusObs", np.nan)
-            a.metric("Within ±3 h", f"{100*float(within):.1f}%" if pd.notna(within) and 0 <= float(within) <= 1 else "—")
-            b.metric("Bias (predicted − observed)", safe_num(bias,".2f") + " h" if pd.notna(bias) else "—")
-            st.caption(diagnostic_note)
-        else: st.info("Model 3 metrics file not found.")
-
-    # ============================================================
-    # ELEVATED-EVENT DIAGNOSTICS
-    # ============================================================
-
-with events_tab:
-    with st.container():
-        cp = DATA["class_predictions"]
-        target_col = DATA["manifest"].get("targets", {}).get("classification", "target_elevated_next_day")
-        actual_col = next((c for c in [target_col, "actual", "y_true", "observed"] if c in cp), None)
-        decision_col = next((c for c in ["predicted_class", "elevated_pm25_prediction"] if c in cp), None)
-        if actual_col and decision_col:
-            valid = cp.copy()
-            if "target_date" in valid:
-                valid = valid[valid["target_date"].dt.year.eq(2024)]
-            obs = pd.to_numeric(valid[actual_col], errors="coerce")
-            dec = pd.to_numeric(valid[decision_col], errors="coerce")
-            mask = obs.isin([0,1]) & dec.isin([0,1])
-            obs, dec = obs[mask], dec[mask]
-            positives = int(obs.eq(1).sum())
-            missed = int((obs.eq(1) & dec.eq(0)).sum())
-            detected = int((obs.eq(1) & dec.eq(1)).sum())
-            st.write(f"Saved classification predictions: {detected} detected and {missed} missed elevated station-days out of {positives} positives ({len(obs)} eligible records).")
-            if positives:
-                st.write(f"Recall recalculated from these records: {detected/positives:.1%}")
-        else:
-            st.info("Add the classification prediction table with observed and predicted classes to inspect missed events.")
-        st.caption("Concentration errors and missed events can be much larger than pooled averages suggest. Assess station-level and elevated-event results together.")
-        for title, key in [("Duration errors by observed-hour stratum", "duration_strata"),
-                           ("Prolonged-event cases", "prolonged_cases"),
-                           ("Duration baseline comparison", "duration_baseline")]:
-            st.markdown(f"**{title}**")
-            if DATA[key].empty:
-                st.info("Supporting result table is unavailable in the selected export.")
-            else:
-                st.dataframe(DATA[key], hide_index=True)
-        st.caption("Prolonged station-day observations are not necessarily independent pollution episodes. Metric uncertainty intervals are not individual forecast intervals.")
-
-    # ============================================================
-    # DIAGNOSTICS + EXPLAINABILITY + DATA QUALITY
-    # ============================================================
-
-with diagnostics_tab:
-    st.markdown('<div class="section-band"><span>🧪 Diagnostics, Explainability & Data Quality</span><span style="font-size:.75rem;color:#6d8094">Observed vs predicted · feature importance · completeness</span></div>',unsafe_allow_html=True)
-    d1,d2,d3=st.columns([1.1,1.1,.9],gap="small")
-    with d1:
-        rp=DATA["reg_predictions"]
-        if not rp.empty:
-            actual=next((c for c in ["target_pm25_next_day","actual","observed","y_true"] if c in rp.columns),None)
-            pred=next((c for c in ["predicted_pm25","prediction","predicted","y_pred"] if c in rp.columns),None)
-            if actual and pred:
-                fig=px.scatter(rp,x=pred,y=actual,title="Model 2: Observed vs Predicted",labels={pred:"Predicted PM2.5",actual:"Observed PM2.5"})
-                fig.update_traces(marker=dict(size=6,opacity=.55,color="#1c85e8")); vals=pd.concat([rp[actual],rp[pred]]).dropna()
-                if len(vals):
-                    mn,mx=float(vals.min()),float(vals.max()); fig.add_shape(type="line",x0=mn,y0=mn,x1=mx,y1=mx,line=dict(color="#5f6d7a",dash="dash"))
-                fig.update_layout(height=310,margin=dict(l=24,r=12,t=44,b=28),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="white")
-                st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
-            else: st.info("Regression prediction columns were not recognised.")
-        else: st.info("Regression predictions file not found.")
-    with d2:
-        imp=DATA["permutation"] if not DATA["permutation"].empty else DATA["shap"]
-        if not imp.empty:
-            fc=next((c for c in ["Feature","feature","variable"] if c in imp.columns),None)
-            vc=next((c for c in ["importance_mean","Importance","importance","Permutation_Importance","mean_importance","SHAP_Importance","mean_abs_shap"] if c in imp.columns),None)
-            if fc and vc:
-                top=imp[[fc,vc]].dropna().sort_values(vc,ascending=False).head(10).sort_values(vc)
-                fig=px.bar(top,x=vc,y=fc,orientation="h",title="Explainability – Top Feature Importance")
-                fig.update_traces(marker_color="#326fc4"); fig.update_layout(height=310,margin=dict(l=24,r=12,t=44,b=28),yaxis_title=None,xaxis_title="Importance",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="white")
-                st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
-            else: st.info("Explainability columns were not recognised.")
-        else: st.info("Permutation / SHAP importance file not found.")
-    with d3:
-        st.markdown('<div class="section-title">Input Data Completeness</div>',unsafe_allow_html=True)
-        rows=[]
-        for name,df in {"NT EPA daily":daily_air,"Model-ready":model_ready,"Dashboard outlook":outlook,"FIRMS selected date":fires}.items():
-            if df is None or df.empty: completeness=0.0; status="Missing"
-            else:
-                completeness=1-float(df.isna().mean().mean())
-                status="Excellent" if completeness>=.97 else "Good" if completeness>=.90 else "Moderate" if completeness>=.75 else "Limited"
-            rows.append({"Source":name,"Completeness":f"{completeness:.0%}","Status":status})
-        st.dataframe(pd.DataFrame(rows),width="stretch",hide_index=True)
-        st.metric("Selected Input Data Completeness",reliability)
-        st.caption("Input availability only; not calibrated prediction confidence. Table percentages describe non-missing loaded cells.")
-        st.metric("Selected Location",location_name)
-        st.metric("Nearest Monitoring Station",station_name)
+            completeness=1-float(df.isna().mean().mean())
+            status="Excellent" if completeness>=.97 else "Good" if completeness>=.90 else "Moderate" if completeness>=.75 else "Limited"
+        rows.append({"Source":name,"Completeness":f"{completeness:.0%}","Status":status})
+    st.dataframe(pd.DataFrame(rows),width="stretch",hide_index=True)
+    st.metric("Selected Outlook Reliability",reliability)
+    st.metric("Selected Location",location_name)
+    st.metric("Nearest Monitoring Station",station_name)
 
 st.markdown('''<div class="footer-note">ⓘ <b>Fire2Air Darwin is a research prototype.</b> This admin dashboard combines NT EPA air-quality/weather data, NASA FIRMS fire detections, FSI features and machine-learning outputs for research decision-support only. Please use official NT EPA sources for operational air-quality advice.</div>''',unsafe_allow_html=True)
-
-st.markdown("""<style>
-.stApp {background: #f5f7fb;}
-[data-testid="stSidebar"] {background: #10263f;}
-[data-testid="stSidebar"] :is(p,label,h2,h3,span) {color: #e6edf5;}
-[data-testid="stSidebar"] input {color: #162b45;}
-[data-testid="stMetric"] {background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;}
-[data-baseweb="tab-list"] {gap: 8px; margin-top: 18px;}
-[data-baseweb="tab"] {background: #e9eff7; border-radius: 10px 10px 0 0; padding: 12px 18px;}
-[data-baseweb="tab"][aria-selected="true"] {background: #123b62; color: white;}
-[data-testid="stAlert"] {border-radius: 10px;}
-</style>""", unsafe_allow_html=True)

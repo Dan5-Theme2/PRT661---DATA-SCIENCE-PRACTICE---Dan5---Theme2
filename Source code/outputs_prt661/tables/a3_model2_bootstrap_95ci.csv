@@ -1,5 +1,0 @@
-Metric,CI_2.5%,CI_97.5%,Bootstrap_Repeats_Used,Block_Days,Method
-MAE,2.1937792283444133,3.2342132951615987,300,7,Moving calendar-date blocks; all stations per date
-RMSE,3.3719902180286008,5.248680135232508,300,7,Moving calendar-date blocks; all stations per date
-Elevated_MAE,6.7396345756172575,14.310368692395368,300,7,Moving calendar-date blocks; all stations per date
-Elevated_RMSE,8.765032351066296,18.990086518525093,300,7,Moving calendar-date blocks; all stations per date
