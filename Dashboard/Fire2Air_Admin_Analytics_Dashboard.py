@@ -22,7 +22,7 @@ st.set_page_config(
     page_title="Fire2Air Darwin | Admin Analytics Dashboard",
     page_icon="🔥",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ============================================================
@@ -37,14 +37,9 @@ if not default_tables.is_dir():
 default_regression = Path.home() / "Downloads" / "Fire2Air_Model2" / "outputs_prt661_a3" / "tables"
 if not default_regression.is_dir() or (default_tables / "a3_model2_final_2024_metrics.csv").is_file():
     default_regression = default_tables
-with st.sidebar:
-    st.markdown("## Fire2Air Analytics")
-    st.caption("Historical research workspace")
-    st.markdown("### Data folders")
-    DATA_ROOT = Path(st.text_input("Dashboard data folder", str(default_export))).expanduser().resolve()
-    TABLE_ROOT = Path(st.text_input("Model 1 & 3 result tables", str(default_tables))).expanduser().resolve()
-    REGRESSION_ROOT = Path(st.text_input("Model 2 result tables", str(default_regression))).expanduser().resolve()
-    st.caption("Select matching outputs from the same preprocessing version. Changing a folder reloads the files.")
+DATA_ROOT = default_export.resolve()
+TABLE_ROOT = Path(os.environ.get("FIRE2AIR_TABLE_DIR", default_tables)).expanduser().resolve()
+REGRESSION_ROOT = Path(os.environ.get("FIRE2AIR_REGRESSION_TABLE_DIR", default_regression)).expanduser().resolve()
 SEARCH_DIRS = [DATA_ROOT, DATA_ROOT / "tables", DATA_ROOT / "processed", DATA_ROOT / "metadata"]
 FIRMS_DATA_DIR = Path(os.environ.get("FIRE2AIR_FIRMS_DIR", str(REPO_ROOT / "Source code" / "Datasets"))).expanduser()
 ACTIVE_FIRMS_DATA_DIR = FIRMS_DATA_DIR
@@ -221,23 +216,7 @@ def load_data():
     }
 
 
-if st.button("Refresh input files"):
-    st.cache_data.clear()
 DATA = load_data()
-with st.sidebar:
-    required_metrics = {
-        "Classification": (TABLE_ROOT, "a3_model1_final_2024_metrics.csv"),
-        "Regression": (REGRESSION_ROOT, "a3_model2_final_2024_metrics.csv"),
-        "Duration": (TABLE_ROOT, "a3_model3_final_2024_metrics.csv"),
-    }
-    st.markdown("### Evaluation files")
-    for label, (folder, name) in required_metrics.items():
-        st.caption(("✓ " if (folder/name).is_file() else "○ ") + label)
-    with st.expander("Missing file names"):
-        for label, (folder, name) in required_metrics.items():
-            if not (folder/name).is_file():
-                st.code(str(folder/name), language=None)
-
 for issue in LOAD_ISSUES:
     st.error(issue)
 if LOAD_ISSUES:
@@ -395,232 +374,43 @@ def load_fires_for_date(date_text):
 # ============================================================
 st.markdown("""
 <style>
-:root{
-  --ink:#12345f;
-  --blue:#0f68c7;
-  --line:#c4c4c4;
-  --muted:#738499;
-  --green:#25bd78;
-  --yellow:#ffd044;
-  --orange:#ff8430;
-  --red:#e8413a;
-
-  --page-x:1.00rem;
-  --page-y:.55rem;
-  --row-gap:.72rem;
-  --section-gap:.72rem;
-  --column-gap:8px;
-  --card-pad-x:13px;
-  --card-pad-y:10px;
-}
-
-/* Requested admin background */
-.stApp{
-  background:#D9D9D9!important;
-}
-
-/* Equal outside padding */
-.block-container{
-  max-width:1800px!important;
-  padding:var(--page-y) var(--page-x) .85rem var(--page-x)!important;
-}
-
-#MainMenu,footer{visibility:hidden}
-header[data-testid="stHeader"]{background:transparent!important}
-[data-testid="stSidebar"]{display:none!important}
-
-/* Consistent horizontal and vertical spacing */
-[data-testid="stHorizontalBlock"]{
-  gap:var(--column-gap)!important;
-  align-items:stretch!important;
-  margin:0 0 var(--row-gap) 0!important;
-}
-[data-testid="column"]{
-  padding:0!important;
-}
-[data-testid="stVerticalBlock"]{
-  gap:var(--row-gap)!important;
-}
-
-/* Header */
-.header-card{
-  width:100%;
-  height:88px;
-  box-sizing:border-box;
-  background:#fff;
-  border:1px solid var(--line);
-  border-radius:15px;
-  padding:9px 14px;
-  display:flex;
-  align-items:center;
-  gap:14px;
-  box-shadow:0 3px 12px rgba(25,76,125,.07);
-  overflow:hidden;
-}
-.header-logo{
-  width:74px;
-  height:74px;
-  object-fit:contain;
-  flex:0 0 74px;
-}
-.header-logo-fallback{
-  width:74px;
-  height:74px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#eef7ff;
-  font-size:2rem;
-  flex:0 0 74px;
-}
-.admin-title{
-  font-size:1.42rem;
-  font-weight:950;
-  color:#103b75;
-  line-height:1.05;
-}
-.admin-dashboard-title{
-  font-weight:900;
-  color:#174a83;
-  font-size:.98rem;
-  margin-top:3px;
-}
-.admin-sub{
-  font-size:.74rem;
-  color:#607890;
-  font-weight:700;
-  margin-top:4px;
-}
-
-/* Cards */
-.metric-card{
-  box-sizing:border-box;
-  height:104px;
-  background:#fff;
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:var(--card-pad-y) var(--card-pad-x);
-  box-shadow:0 3px 12px rgba(25,76,125,.06);
-}
-.metric-label{font-size:.78rem;color:#2a5380;font-weight:850}
-.metric-value{font-size:1.48rem;color:#0e3470;font-weight:950;margin-top:5px}
-.metric-sub{font-size:.69rem;color:#77889a;margin-top:4px}
-
-.kpi-blue{background:linear-gradient(135deg,#eef7ff,#e3f1ff)}
-.kpi-red{background:linear-gradient(135deg,#fff4f2,#ffe9e5)}
-.kpi-orange{background:linear-gradient(135deg,#fff8ee,#fff0dd)}
-.kpi-purple{background:linear-gradient(135deg,#f8f2ff,#eee4ff)}
-
-/* Compact section headers */
-.section-band{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  box-sizing:border-box;
-  min-height:50px;
-  background:linear-gradient(90deg,#eaf6ff,#f9fcff);
-  border:1px solid #c5d8e8;
-  border-radius:12px;
-  padding:8px 12px;
-  margin:var(--section-gap) 0;
-  color:#103f7d;
-  font-weight:950;
-}
-.section-title{
-  font-size:.98rem;
-  font-weight:950;
-  color:#103f7d;
-  margin:.12rem 0 .28rem;
-}
-
-/* Select widgets */
-div[data-baseweb="select"]>div{
-  min-height:45px!important;
-  background:#fff!important;
-  border:1px solid var(--line)!important;
-  color:#17395f!important;
-  border-radius:10px!important;
-}
-label[data-testid="stWidgetLabel"] p{
-  color:#526b83!important;
-  font-size:.72rem!important;
-  font-weight:850!important;
-}
-
-/* Equal Streamlit metric cards */
-[data-testid="stMetric"]{
-  box-sizing:border-box;
-  background:#fff;
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:10px 12px;
-  min-height:88px;
-}
-[data-testid="stMetricLabel"]{font-weight:850;color:#3d5e7e}
-[data-testid="stMetricValue"]{color:#12345f}
-
-/* Chart cards */
-.stPlotlyChart{
-  box-sizing:border-box;
-  background:#fff;
-  border:1px solid var(--line);
-  border-radius:13px;
-  padding:5px;
-  margin:0!important;
-}
-
-/* Prevent info/warning blocks becoming short odd-sized widgets */
-[data-testid="stAlert"]{
-  min-height:88px;
-  box-sizing:border-box;
-  border-radius:12px;
-  display:flex;
-  align-items:center;
-}
-
-/* Tables */
-[data-testid="stDataFrame"]{
-  background:#fff;
-  border-radius:12px;
-  overflow:hidden;
-}
-
-/* Tight captions */
-[data-testid="stCaptionContainer"]{
-  margin-top:-2px!important;
-  margin-bottom:1px!important;
-}
-
-.footer-note{
-  margin-top:var(--section-gap);
-  background:#eef4f8;
-  border:1px solid #c5c5c5;
-  border-radius:12px;
-  padding:9px 13px;
-  color:#506980;
-  text-align:center;
-  font-size:.75rem;
-}
-
-/* Extra breathing room between stacked dashboard rows */
-div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"]{
-  margin-bottom:.20rem!important;
-}
-
-/* Keep section bands separated from rows above and below */
-.section-band{
-  margin:.72rem 0 .72rem 0!important;
-}
-
-/* Add balanced spacing under chart / metric rows */
-.stPlotlyChart,
-[data-testid="stMetric"],
-[data-testid="stDataFrame"],
-[data-testid="stAlert"]{
-  margin-bottom:.28rem!important;
-}
-
+:root {--ink:#173451;--muted:#62758a;--line:#dce5ee;--section-gap:.7rem;}
+.stApp {background:#f4f7fb!important;color:#173451;}
+.block-container {max-width:1560px;padding:2.8rem 1.6rem 1.2rem!important;}
+header[data-testid="stHeader"] {background:rgba(244,247,251,.95);}
+footer {visibility:hidden;}
+[data-testid="stSidebar"] {background:#fff;border-right:1px solid #dce5ee;}
+[data-testid="stSidebar"] .block-container {padding:1rem!important;}
+[data-testid="stVerticalBlock"] {gap:.55rem;}
+[data-testid="stHorizontalBlock"] {gap:1rem;align-items:stretch;}
+.header-card {display:flex;align-items:center;gap:14px;min-height:100px;padding:12px 16px;background:#fff;border:1px solid #dce5ee;border-radius:16px;box-sizing:border-box;}
+.header-logo,.header-logo-fallback {width:64px;height:64px;object-fit:contain;flex:0 0 64px;}
+.header-logo-fallback {display:flex;align-items:center;justify-content:center;background:#e9f3fc;border-radius:16px;font-size:2rem;}
+.admin-title {font-size:1.55rem;font-weight:800;color:#153c63;line-height:1.2;}
+.admin-dashboard-title {font-size:1rem;font-weight:650;margin-top:3px;}
+.admin-sub {font-size:.76rem;color:#62758a;margin-top:4px;}
+.metric-card {height:112px;box-sizing:border-box;background:#fff!important;border:1px solid #dce5ee;border-top:3px solid #387bb6;border-radius:12px;padding:12px 14px;}
+.metric-label {font-size:.78rem;font-weight:650;color:#526b82;}
+.metric-value {font-size:1.5rem;font-weight:800;margin-top:6px;color:#173451;}
+.metric-sub {font-size:.71rem;line-height:1.35;color:#62758a;margin-top:5px;}
+.kpi-purple {border-top-color:#8876c7;}.kpi-orange {border-top-color:#dc9d42;}.kpi-red {border-top-color:#bd7481;}
+.section-band {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin:.65rem 0 .3rem;padding:10px 14px;border:1px solid #dce5ee;border-radius:10px;background:#eaf1f8;color:#173f65;font-weight:750;}
+.section-title {font-size:1rem;font-weight:750;color:#173f65;margin:.35rem 0 .7rem;}
+[data-testid="stMetric"] {height:100%;min-height:104px;box-sizing:border-box;padding:14px;background:#fff;border:1px solid #dce5ee;border-radius:12px;}
+[data-testid="stMetricLabel"] {font-size:.8rem;color:#526b82;}
+[data-testid="stMetricValue"] {font-size:1.8rem;color:#173451;font-weight:700;}
+[data-testid="stMetricLabel"] p {white-space:normal!important;}
+[data-testid="stAlert"] {min-height:0!important;border-radius:10px;font-size:.88rem;}
+[data-testid="stCaptionContainer"] {font-size:.78rem;line-height:1.5;color:#62758a;margin:0;}
+[data-baseweb="select"]>div {border-radius:10px;border-color:#dce5ee;background:white;min-height:44px;}
+.stPlotlyChart {background:white;border:1px solid #dce5ee;border-radius:14px;padding:5px;}
+[data-testid="stDataFrame"] {border:1px solid #dce5ee;border-radius:12px;overflow:hidden;}
+[data-baseweb="tab-list"] {gap:8px;margin-top:14px;border-bottom:1px solid #dce5ee;}
+[data-baseweb="tab"] {height:44px;padding:10px 16px;background:#e8eef5;border-radius:9px 9px 0 0;white-space:nowrap;color:#45617c;}
+[data-baseweb="tab"][aria-selected="true"] {background:#173f65;color:#fff;}
+[data-baseweb="tab-highlight"] {background:#173f65;}
+.footer-note {margin-top:1rem;border-top:1px solid #dce5ee;padding:14px 6px;color:#62758a;font-size:.75rem;text-align:center;}
+@media(max-width:800px) {.block-container {padding:2.8rem .8rem 1rem!important;}.section-band {flex-wrap:wrap;}.metric-sub {font-size:.67rem;}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -645,16 +435,6 @@ if outlook.duplicated(["station", "date", "target_date"]).any():
     st.error("Duplicate station/date records in the outlook. Regenerate integration.")
     st.stop()
 
-st.info("Historical forecasts — not live. Research prototype; low predicted probability does not rule out elevated pollution.")
-with st.expander("Loaded files and run provenance"):
-    st.caption(f"Configured export folder: {DATA_ROOT}")
-    st.dataframe(pd.DataFrame([{"File": n, "Path": str(p),
-        "SHA256": hashlib.sha256(p.read_bytes()).hexdigest()}
-        for n,p in LOADED_FILES.items()]), hide_index=True)
-    st.caption("File hashes identify loaded bytes; matching hashes require a trusted inventory to establish approval.")
-    run_id = DATA["manifest"].get("run_id", DATA["manifest"].get("preprocessing_run_id"))
-    st.write("Preprocessing run:", run_id or "Not recorded in the loaded manifest")
-    st.warning("A common run across all model outputs is not certified by filenames. Check the integration run records.")
 
 for df, cols in [(outlook,["date","target_date"]),(daily_air,["date"]),(model_ready,["date","target_date"])]:
     for col in cols:
@@ -676,7 +456,7 @@ for col, low, high in [("elevated_pm25_probability",0,1), ("expected_elevated_ho
 outlook["expected_daily_mean_pm25"] = pd.to_numeric(outlook["expected_daily_mean_pm25"], errors="coerce")
 logo_uri = image_data_uri(LOGO_PATH)
 
-nav_header, nav_location, nav_date = st.columns([2.65, 2.10, 1.45], gap="small")
+nav_header, nav_location, nav_date = st.columns([2.3, 1.6, 1.25], gap="medium")
 
 with nav_header:
     if logo_uri:
@@ -691,7 +471,7 @@ with nav_header:
           <div>
             <div class="admin-title">Fire2Air Darwin</div>
             <div class="admin-dashboard-title">Admin Analytics Dashboard</div>
-            <div class="admin-sub">Advanced analytics for research, modelling and decision support</div>
+            <div class="admin-sub">Historical evaluation · model diagnostics · data quality</div>
           </div>
         </div>
         """,
@@ -729,6 +509,7 @@ nearest_fire = first_available(r,["nearest_upwind_fire_km","nearest_fire_km"])
 upwind_frp = first_available(r,["upwind_frp_sum","wind_aligned_frp","aligned_frp_sum"])
 reliability = str(r.get("input_data_completeness", r.get("input_reliability","Unknown")))
 influence = str(r.get("fire_smoke_influence","Unknown")) if pd.notna(fsi) else "Unknown"
+st.info("Historical forecasts — not live. Research prototype; low predicted probability does not rule out elevated pollution.")
 st.caption(f"Observation date: {predictor_date.date()} · Forecast target date: {selected_date}")
 issue_value = next((r.get(k) for k in ["forecast_issue_time", "forecast_issued_at", "issue_timestamp"] if pd.notna(r.get(k))), None)
 st.caption(f"Recorded forecast issue timestamp: {issue_value}" if issue_value is not None
@@ -1042,7 +823,7 @@ with performance_tab:
         else:
             st.info(
                 f"Regression metrics are missing from {REGRESSION_ROOT}. "
-                "Choose the folder containing a3_model2_final_2024_metrics.csv in the sidebar."
+                "Place a3_model2_final_2024_metrics.csv in the configured regression tables folder."
             )
     with mp3:
         st.markdown('<div class="section-title">Model 3 – Count</div>',unsafe_allow_html=True)
@@ -1054,7 +835,7 @@ with performance_tab:
             if pd.isna(within): within = extra.get("Within_3h", np.nan)
             if pd.isna(bias): bias = extra.get("Bias_PredMinusObs", np.nan)
             a.metric("Within ±3 h", f"{100*float(within):.1f}%" if pd.notna(within) and 0 <= float(within) <= 1 else "—")
-            b.metric("Bias (predicted − observed)", safe_num(bias,".2f") + " h" if pd.notna(bias) else "—")
+            b.metric("Bias (hours)", safe_num(bias,".2f") if pd.notna(bias) else "—", help="Mean predicted minus observed duration. Positive values indicate overprediction.")
             st.caption(diagnostic_note)
         else: st.info("Model 3 metrics file not found.")
 
@@ -1108,7 +889,7 @@ with diagnostics_tab:
             actual=next((c for c in ["target_pm25_next_day","actual","observed","y_true"] if c in rp.columns),None)
             pred=next((c for c in ["predicted_pm25","prediction","predicted","y_pred"] if c in rp.columns),None)
             if actual and pred:
-                fig=px.scatter(rp,x=pred,y=actual,title="Model 2: Observed vs Predicted",labels={pred:"Predicted PM2.5",actual:"Observed PM2.5"})
+                fig=px.scatter(rp,x=pred,y=actual,title="Model 2: Observed vs Predicted",labels={pred:"Predicted PM₂.₅ (µg/m³)",actual:"Observed PM₂.₅ (µg/m³)"})
                 fig.update_traces(marker=dict(size=6,opacity=.55,color="#1c85e8")); vals=pd.concat([rp[actual],rp[pred]]).dropna()
                 if len(vals):
                     mn,mx=float(vals.min()),float(vals.max()); fig.add_shape(type="line",x0=mn,y0=mn,x1=mx,y1=mx,line=dict(color="#5f6d7a",dash="dash"))
@@ -1123,7 +904,7 @@ with diagnostics_tab:
             vc=next((c for c in ["importance_mean","Importance","importance","Permutation_Importance","mean_importance","SHAP_Importance","mean_abs_shap"] if c in imp.columns),None)
             if fc and vc:
                 top=imp[[fc,vc]].dropna().sort_values(vc,ascending=False).head(10).sort_values(vc)
-                fig=px.bar(top,x=vc,y=fc,orientation="h",title="Explainability – Top Feature Importance")
+                fig=px.bar(top,x=vc,y=fc,orientation="h",title="Model 3 – " + ("Permutation Importance" if not DATA["permutation"].empty else "Mean Absolute SHAP"))
                 fig.update_traces(marker_color="#326fc4"); fig.update_layout(height=310,margin=dict(l=24,r=12,t=44,b=28),yaxis_title=None,xaxis_title="Importance",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="white")
                 st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
             else: st.info("Explainability columns were not recognised.")
@@ -1131,28 +912,17 @@ with diagnostics_tab:
     with d3:
         st.markdown('<div class="section-title">Input Data Completeness</div>',unsafe_allow_html=True)
         rows=[]
-        for name,df in {"NT EPA daily":daily_air,"Model-ready":model_ready,"Dashboard outlook":outlook,"FIRMS selected date":fires}.items():
+        for name,df in {"NT EPA daily":daily_air,"Model-ready":model_ready,"Dashboard outlook":outlook,"FIRMS detection records":fires}.items():
             if df is None or df.empty: completeness=0.0; status="Missing"
             else:
                 completeness=1-float(df.isna().mean().mean())
                 status="Excellent" if completeness>=.97 else "Good" if completeness>=.90 else "Moderate" if completeness>=.75 else "Limited"
-            rows.append({"Source":name,"Completeness":f"{completeness:.0%}","Status":status})
+            rows.append({"Source":name,"Non-missing cells":f"{completeness:.1%}","Status":status})
         st.dataframe(pd.DataFrame(rows),width="stretch",hide_index=True)
         st.metric("Selected Input Data Completeness",reliability)
-        st.caption("Input availability only; not calibrated prediction confidence. Table percentages describe non-missing loaded cells.")
+        st.caption("Input availability only; not calibrated prediction confidence. Table percentages describe non-missing cells in loaded records, not satellite observation coverage. A full detection table does not establish that every fire was detected.")
         st.metric("Selected Location",location_name)
         st.metric("Nearest Monitoring Station",station_name)
 
 st.markdown('''<div class="footer-note">ⓘ <b>Fire2Air Darwin is a research prototype.</b> This admin dashboard combines NT EPA air-quality/weather data, NASA FIRMS fire detections, FSI features and machine-learning outputs for research decision-support only. Please use official NT EPA sources for operational air-quality advice.</div>''',unsafe_allow_html=True)
 
-st.markdown("""<style>
-.stApp {background: #f5f7fb;}
-[data-testid="stSidebar"] {background: #10263f;}
-[data-testid="stSidebar"] :is(p,label,h2,h3,span) {color: #e6edf5;}
-[data-testid="stSidebar"] input {color: #162b45;}
-[data-testid="stMetric"] {background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;}
-[data-baseweb="tab-list"] {gap: 8px; margin-top: 18px;}
-[data-baseweb="tab"] {background: #e9eff7; border-radius: 10px 10px 0 0; padding: 12px 18px;}
-[data-baseweb="tab"][aria-selected="true"] {background: #123b62; color: white;}
-[data-testid="stAlert"] {border-radius: 10px;}
-</style>""", unsafe_allow_html=True)
