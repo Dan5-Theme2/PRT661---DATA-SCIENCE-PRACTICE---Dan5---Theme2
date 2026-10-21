@@ -1,0 +1,16 @@
+Scope,Stratum,Model,Rows,MAE_hours,RMSE_hours,Bias_hours
+All eligible model observations,All durations,Selected model,645,1.3038219632698815,2.161514558999587,0.2505007378065748
+All eligible model observations,All durations,Always zero,645,1.475968992248062,3.288221875235185,-1.475968992248062
+All eligible model observations,6–24 hours,Selected model,79,3.9539923497573843,4.670527649810441,-3.2599951658060453
+All eligible model observations,6–24 hours,Always zero,79,8.379746835443038,8.679963833559373,-8.379746835443038
+All eligible model observations,13–24 hours,Selected model,5,8.3462145561093,8.86328372125709,-8.3462145561093
+All eligible model observations,13–24 hours,Always zero,5,14.2,14.233762678926468,-14.2
+Matched observations with valid persistence,All durations,Selected model,520,1.4815385917098864,2.342193466382713,0.22821417372105357
+Matched observations with valid persistence,All durations,Always zero,520,1.7134615384615384,3.5661334372549343,-1.7134615384615384
+Matched observations with valid persistence,All durations,Duration persistence,520,1.3576923076923078,2.7456258919345764,-0.026923076923076925
+Matched observations with valid persistence,6–24 hours,Selected model,74,4.077051889127787,4.755333063421892,-3.336163003558115
+Matched observations with valid persistence,6–24 hours,Always zero,74,8.445945945945946,8.751061711648541,-8.445945945945946
+Matched observations with valid persistence,6–24 hours,Duration persistence,74,4.0675675675675675,5.087079552983065,-2.8513513513513513
+Matched observations with valid persistence,13–24 hours,Selected model,5,8.3462145561093,8.86328372125709,-8.3462145561093
+Matched observations with valid persistence,13–24 hours,Always zero,5,14.2,14.233762678926468,-14.2
+Matched observations with valid persistence,13–24 hours,Duration persistence,5,8.6,8.843076387773658,-8.6

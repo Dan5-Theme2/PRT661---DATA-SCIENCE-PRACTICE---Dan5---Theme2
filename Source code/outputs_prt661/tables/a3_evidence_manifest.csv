@@ -1,0 +1,15 @@
+Assessment3_Area,Evidence,Purpose
+Raw data coverage,tables/a3_firms_year_coverage_2018_2024.csv,Verifies FIRMS years 2018–2024
+NT EPA quality,tables/a3_epa_missing_pct_year_station_variable.csv,Year x station x variable missingness
+Cleaning log,tables/a3_epa_cleaning_log.csv,Auditable cleaning rules
+Pressure/rainfall,tables/a3_epa_pressure_unit_audit.csv; tables/a3_epa_rainfall_station_behaviour_audit.csv,Station-specific harmonisation
+Advanced fire engineering,Fire2Air_firms_daily_checkpoint_A3.csv,"Distance, age, alignment, upwind and FSI features"
+Shared model dataset,Fire2Air_model_ready_checkpoint_A3.csv; Fire2Air_feature_manifest_A3.json,Single trusted feature table
+Ablation,tables/a3_model1/model2/model3_ablation_results.csv,Incremental value of A–F feature groups
+Rare-event evaluation,tables/a3_model1_false_negative_analysis_by_station.csv; a3_model2_2024_stratified_metrics.csv; a3_model3_2024_duration_strata.csv,Performance on important uncommon outcomes
+Station diagnostics,tables/a3_all_models_station_level_metrics.csv,Palmerston/Winnellie/Stokes Hill separately
+Cross-station transfer,tables/a3_all_models_leave_one_station_out.csv,Leave-one-station-out results
+Explainability,figures/a3_model3_shap_*; figures/a3_model3_count_permutation_importance.png,SHAP/permutation evidence
+Novelty plots,figures/a3_05...a3_07,FSI/aligned/upwind fire relationships
+Integrated decision support,Fire2Air_dashboard_ready_outlook_A3.csv,Three-model Tomorrow Smoke Outlook
+Governance,ADD REAL GitHub/Jira/team evidence,Must come from genuine project activity
