@@ -2,8 +2,8 @@
   "project": "Fire2Air Darwin",
   "assessment": 4,
   "pipeline_version": "a4-data-quality-v1",
-  "run_id": "20261020T103612Z_433b4234",
-  "generated_at_utc": "2026-10-20T10:38:52.585880+00:00",
+  "run_id": "20261021T100858Z_ea844f36",
+  "generated_at_utc": "2026-10-21T10:11:03.497406+00:00",
   "checkpoint_sha256": "062f137388d579b3c3c13f72193c227dd2a010c77e8cfd1d9bc85f07c6c71f4b",
   "input_files": [
     {

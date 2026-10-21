@@ -1,7 +1,7 @@
 {
-  "run_id": "20261020T103612Z_433b4234",
+  "run_id": "20261021T100858Z_ea844f36",
   "status": "success",
-  "started_at_utc": "2026-10-20T10:36:12.371299+00:00",
+  "started_at_utc": "2026-10-21T10:08:58.916934+00:00",
   "completed_stages": [
     "cell_03",
     "cell_05",
@@ -19,5 +19,5 @@
     "cell_29"
   ],
   "scope": "historical retrospective preprocessing",
-  "completed_at_utc": "2026-10-20T10:38:58.373101+00:00"
+  "completed_at_utc": "2026-10-21T10:11:07.309580+00:00"
 }
